@@ -4,14 +4,18 @@
 
 - [ ] いろんな受信機が考えられるので、Signal Recorderは差し替え可能とする。
 - [ ] データベースに、Recorderの種類（SoftRock 9.0 Lite, RTL-SDR + Spyverter）などを記録する。
-- [ ] 日単位でディレクトリを分ける。
+- [ ] 日単位でディレクトリを分ける。（TBD: UTC?  ローカルタイム?）
 - [ ] -1秒から9秒まで、10秒毎にファイルを分ける。
 - [ ] ファイルは.wavフォーマットとする。
 - [ ] クリーナー（Signal Files Cleaner）も作る。
 
 ## Characteristics Extractor
 
+特徴抽出器
+
 ## Bayesian Inference
+
+ベイズ推定器
 
 ## Signal Files Cleaner
 
@@ -28,7 +32,8 @@
 
 - [ ] スキーマはどうしよう。あまり凝ったものにせず、必要最小限のシンプルなものから始める。
 
-   - [ ] 日時
+   - [ ] 日時（TBD: UTC?  ローカルタイム?）
+   - [ ] 時刻オフセット（単位はミリ秒。-1000ならば、1秒前から受信した音声）
    - [ ] 受信周波数（kHz単位まで。BFO+サイドトーン周波数）
    - [ ] CW復調サイドトーン周波数（+のときはCW Reverse。つまり、BFOが対象周波数より下にある）
    - [ ] Signal Recorderの種別

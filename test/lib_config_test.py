@@ -1,7 +1,9 @@
+import os
 import sys
 import unittest
 
-sys.path.append('..')
+# Set Python search path to the parent directory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from lib.config import *
 
 class TestLibConfig(unittest.TestCase):

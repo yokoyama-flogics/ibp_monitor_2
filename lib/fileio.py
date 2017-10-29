@@ -3,10 +3,6 @@ File Handlers
 """
 
 from lib.config import BeaconConfigParser
-import unittest
-
-class UnitTests(unittest.TestCase):
-    pass
 
 def open_db_file(name, mode=None):
     config = BeaconConfigParser()
@@ -19,5 +15,4 @@ def main():
     pass
 
 if __name__ == "__main__":
-    # unittest.main()
     main()

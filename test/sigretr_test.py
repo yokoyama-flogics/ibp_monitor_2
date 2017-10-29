@@ -52,12 +52,21 @@ class TestSigRetr(unittest.TestCase):
             main()
 
     def test_sigretr_main_success(self):
-        sys.argv = ['', '20171028', '1', 'foo.wav']
+        sys.argv = ['', '-d', '20171028', '1', 'foo.wav']
         main()
         self.assertEqual(len(open('foo.wav').read()), 640044)
         self.assertEqual(open('foo.wav').read(),
                          open('sigretr_test.wav').read())
         os.remove('foo.wav')
+        self.assertEqual(sys.stdout.getvalue(),
+"""Current index:  1509148799 198927       16000 00:00:00 4U1UN  14MHz
+Next index:  1509148809 200225      656000 00:00:10 VE8AT  14MHz
+Start: 198927 16000
+End: 200225 656000
+Updated end_time:  10200225.0
+# of samples:  160000
+true_start_pos:  3272
+""")
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

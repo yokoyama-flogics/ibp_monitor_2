@@ -8,11 +8,9 @@ ten-seconds .wav file.
 
 # XXX We should take care of iqlag (I/Q sample delay in input) in the tool.
 
-global debug
-
 from lib.common import eprint
 
-def retrieve_signal(date_str, line_num):
+def retrieve_signal(date_str, line_num, debug=False):
     """
     Open a Monitor-1 style '.txt' and '.raw' file and retrieve a 10-seconds
     signal data which is specified by line_num (line of the '.txt' file).
@@ -86,8 +84,7 @@ def write_wav_file(filename, data):
     import wave
 
     # Read parameter samplerate from config file
-    config = BeaconConfigParser()
-    samplerate = config.getint('Signal', 'samplerate')
+    samplerate = BeaconConfigParser().getint('Signal', 'samplerate')
 
     wavfile = wave.open(filename, 'wb')
     wavfile.setnchannels(2)
@@ -97,14 +94,9 @@ def write_wav_file(filename, data):
     wavfile.close()
 
 def main():
-    global debug
-    from lib.config import BeaconConfigParser
     import argparse
     import re
     import sys
-
-    # Parse configuration file
-    config = BeaconConfigParser()
 
     # Parse arguments
     parser = argparse.ArgumentParser(
@@ -129,10 +121,9 @@ def main():
     if args.line < 1:
         eprint("Illegal line '%d' specified" % (args.line))
         sys.exit(1)
-    debug = args.debug
 
     # Read signal data from raw file, and write it as .wav file
-    sig = retrieve_signal(args.date, args.line)
+    sig = retrieve_signal(args.date, args.line, debug=args.debug)
     write_wav_file(args.output_file, sig)
 
 if __name__ == "__main__":

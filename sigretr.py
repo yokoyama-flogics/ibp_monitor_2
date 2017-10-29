@@ -2,7 +2,8 @@
 Signal Retriever
 
 This is required to migrate from Monitor 1 to Monitor 2.
-Scan signal raw file (one file a day) and generate a ten-seconds .wav file.
+Scans Monitor-1 style signal raw file (one file a day) and generate a
+ten-seconds .wav file.
 """
 
 # XXX We should take care of iqlag (I/Q sample delay in input) in the tool.
@@ -16,7 +17,7 @@ class UnitTests(unittest.TestCase):
 
 def retrieve_signal(date_str, line_num):
     """
-    Open a Monitor 1 style '.txt' and '.raw' file and retrieve a 10-seconds
+    Open a Monitor-1 style '.txt' and '.raw' file and retrieve a 10-seconds
     signal data which is specified by line_num (line of the '.txt' file).
     """
     from lib.fileio import open_db_file

@@ -11,6 +11,7 @@ ten-seconds .wav file.
 global debug
 
 import unittest
+from lib.common import eprint
 
 class UnitTests(unittest.TestCase):
     pass
@@ -101,9 +102,10 @@ def write_wav_file(filename, data):
 
 def main():
     global debug
-    import argparse
     from lib.config import BeaconConfigParser
+    import argparse
     import re
+    import sys
 
     # Parse configuration file
     config = BeaconConfigParser()
@@ -126,9 +128,11 @@ def main():
     # Check arguments
     m = re.match(r'[0-9]{8}$', args.date)
     if not m:
-        print "Illegal date '%s' specified" % (args.date)
+        eprint("Illegal date '%s' specified" % (args.date))
+        sys.exit(1)
     if args.line < 1:
-        print "Illegal line '%d' specified" % (args.line)
+        eprint("Illegal line '%d' specified" % (args.line))
+        sys.exit(1)
     debug = args.debug
 
     # Read signal data from raw file, and write it as .wav file

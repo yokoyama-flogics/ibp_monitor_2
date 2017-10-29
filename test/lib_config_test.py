@@ -21,7 +21,7 @@ class TestLibConfig(unittest.TestCase):
 
     def test_config_items(self):
         config = BeaconConfigParser('test_config.cfg')
-        self.assertEqual(config.get('Test', 'dbdir'), 'foo')
+        self.assertEqual(config.get('Test', 'dbdir'), 'nodb')
         self.assertEqual(config.getint('Signal', 'samplerate'), 16000)
 
 if __name__ == "__main__":

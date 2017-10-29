@@ -10,11 +10,7 @@ ten-seconds .wav file.
 
 global debug
 
-import unittest
 from lib.common import eprint
-
-class UnitTests(unittest.TestCase):
-    pass
 
 def retrieve_signal(date_str, line_num):
     """

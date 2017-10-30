@@ -18,6 +18,7 @@ def retrieve_signal(date_str, line_num, debug=False):
     from lib.fileio import open_db_file
     import math
     import re
+    import time
 
     txtfile = open_db_file('ibprec_' + date_str + '.txt', mode='r')
 
@@ -28,7 +29,14 @@ def retrieve_signal(date_str, line_num, debug=False):
     # Read corresponding index lines
     # (Note that consecutive 2 index lines are required.)
     cur_index = txtfile.readline()
-    next_index = txtfile.readline()
+
+    # Next index line may be NOT ready yet.  Need to wait in the case.
+    while True:
+        next_index = txtfile.readline()
+        if next_index == '':
+            time.sleep(0.5)
+        else:
+            break
 
     if debug:
         print "Current index: ", cur_index.rstrip()
@@ -76,12 +84,30 @@ def retrieve_signal(date_str, line_num, debug=False):
     rawfile.close()
     return rawdata
 
-def write_wav_file(filename, data):
+def write_wav_file(filename, data, to_signal_dir=False):
     """
     Convert raw signal data 'data' to .wav format and write to 'filename'.
+
+    If to_signal_dir is True, written to the standard direcotry.
     """
     from lib.config import BeaconConfigParser
+    import os
     import wave
+
+    if to_signal_dir:
+        config = BeaconConfigParser()
+        sigdir = config.get('Signal', 'dir')
+        if sigdir[-1] != '/':
+            sigdir += '/'
+        filename = sigdir + filename
+
+    dirname = os.path.dirname(filename)
+    if dirname != '':
+        try:
+            os.makedirs(dirname)
+        except OSError as err:
+            if err[1] != 'File exists':
+                raise err
 
     # Read parameter samplerate from config file
     samplerate = BeaconConfigParser().getint('Signal', 'samplerate')

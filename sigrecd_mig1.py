@@ -33,11 +33,13 @@ def startrec(arg_from, debug=False):
         start_line = 1
 
     curfd = None
+    curline = 0     # will be initialized in the loop below in anyway
 
     while True:
         # For first iteration or curfd is closed, open a new file
         if curfd is None:
             curfd = open_db_file('ibprec_%s.txt' % (datestr), 'r')
+            curline = 0
 
         # If start_line < 0, if means starting from new line, so skip already
         # existing lines.
@@ -45,9 +47,11 @@ def startrec(arg_from, debug=False):
             while True:
                 line = curfd.readline()
                 if line == '':
-                    break
+                    break       # no more lines
+
+                curline += 1
                 if debug:
-                    print "* ", line.rstrip()    # skipped line
+                    print "#", line.rstrip()    # skipped line
 
         # Now, wait for a line from curfd
         while True:
@@ -55,6 +59,7 @@ def startrec(arg_from, debug=False):
             if line == '':
                 time.sleep(0.5)     # sleep for a short period
             else:
+                curline += 1
                 break
 
         line = line.rstrip()
@@ -63,20 +68,23 @@ def startrec(arg_from, debug=False):
         m = re.match(r' *#', line)
         if m:
             if debug:
-                print "COMMENT: ", line
+                print "COMMENT:", line
             continue
 
         # Check if the line is an end-of-file marker
         m = re.search(r'MHz\s*$', line)
         if not m:
             if debug:
-                print "TERMINATED: ", line
+                print "TERMINATED:", line
+            curfd.close()
             curfd = None
+            curline = 0
             datestr = nextday_datestr(datestr)
             start_line = 1
+            continue
 
         if debug:
-            print "# ", line
+            print "%4d: %s" % (curline, line)
 
 def main():
     import argparse

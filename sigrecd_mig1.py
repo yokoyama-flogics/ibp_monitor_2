@@ -2,8 +2,27 @@
 Signal Recorder Daemon for Migration from IBP Monitor-1
 """
 
+import os
+import sys
+
+# Set Python search path to the parent directory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from lib.common import eprint
 from lib.fileio import open_db_file
+
+def record_one_file(datestr, timestr, line, debug=False):
+    """
+    Record (or 'convert' in the migration recorder case) one file from
+    the raw file specified by 'datestr' and 'line' in the file.
+    Note that the 'line' is true line number of the file.  Comment line is also
+    counted.
+    """
+    from sigretr import retrieve_signal, write_wav_file
+
+    # Read signal data from raw file, and write it as .wav file
+    sig = retrieve_signal(datestr, line, debug=False)
+    write_wav_file(datestr + '/' + timestr + '.wav', sig, to_signal_dir=True)
 
 def nextday_datestr(datestr):
     """
@@ -21,16 +40,17 @@ def startrec(arg_from, debug=False):
     If arg_from is 'new', it start from new line of today's file.
     Otherwise, treats arg_from as datestr (e.g. 20171028)
     """
+    from datetime import datetime
+    import math
     import re
     import time
 
     if arg_from == 'new':
-        from datetime import datetime
         datestr = datetime.utcnow().strftime('%Y%m%d')
-        start_line = -1
+        seek_to_tail = True
     else:
         datestr = arg_from
-        start_line = 1
+        seek_to_tail = False
 
     curfd = None
     curline = 0     # will be initialized in the loop below in anyway
@@ -41,9 +61,10 @@ def startrec(arg_from, debug=False):
             curfd = open_db_file('ibprec_%s.txt' % (datestr), 'r')
             curline = 0
 
-        # If start_line < 0, if means starting from new line, so skip already
-        # existing lines.
-        if start_line < 0:
+        # If seek_to_tail is True, it means starting from new line (next of the
+        # current last line, so skip already existing lines.
+        if seek_to_tail == True:
+            seek_to_tail = False    # never seek again
             while True:
                 line = curfd.readline()
                 if line == '':
@@ -80,11 +101,22 @@ def startrec(arg_from, debug=False):
             curfd = None
             curline = 0
             datestr = nextday_datestr(datestr)
-            start_line = 1
             continue
 
         if debug:
             print "%4d: %s" % (curline, line)
+
+        # This is not required.  %H:%M:%S is included in the line...
+        # m = re.match(r'\d+', line)
+        # utctime = datetime.utcfromtimestamp(
+        #     math.floor((float(m.group(0)) + 6.0) / 10.0) * 10.0)
+
+        # Extract time time string from the line, and convert to %H%M%S.
+        m = re.search(r' (\d{2}):(\d{2}):(\d{2}) ', line)
+        timestr = m.group(1) + m.group(2) + m.group(3)
+
+        # Finally process the line
+        record_one_file(datestr, timestr, curline, debug)
 
 def main():
     import argparse

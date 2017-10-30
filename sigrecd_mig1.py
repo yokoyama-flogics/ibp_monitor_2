@@ -9,7 +9,29 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
+from lib.config import BeaconConfigParser
 from lib.fileio import open_db_file
+
+def exceeded_sigfiles_limit():
+    """
+    Check if too many signal files are generated and return True if so.
+    """
+    import re
+
+    prog = re.compile(r'\.wav$')
+
+    ct = 0
+    for root, dirs, files in \
+            os.walk(BeaconConfigParser().get('Signal', 'dir')):
+        for f in files:
+            if prog.search(f):
+                ct += 1
+
+    if ct >= BeaconConfigParser().getint(
+            'SignalRecorder', 'sigfiles_num_limit'):
+        return True
+    else:
+        return False
 
 def record_one_file(datestr, timestr, line, debug=False):
     """
@@ -114,6 +136,13 @@ def startrec(arg_from, debug=False):
         # Extract time time string from the line, and convert to %H%M%S.
         m = re.search(r' (\d{2}):(\d{2}):(\d{2}) ', line)
         timestr = m.group(1) + m.group(2) + m.group(3)
+
+        # Check if generated signal files are too much
+        if exceeded_sigfiles_limit():
+            eprint("Signal files limit (number of size) is exceeded.")
+            eprint("Waiting until not meeting the condition again.")
+        while exceeded_sigfiles_limit():
+            time.sleep(0.5)
 
         # Finally process the line
         record_one_file(datestr, timestr, curline, debug)

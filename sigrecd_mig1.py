@@ -9,13 +9,12 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
-from lib.config import BeaconConfigParser
-from lib.fileio import open_db_file
 
 def exceeded_sigfiles_limit():
     """
     Check if too many signal files are generated and return True if so.
     """
+    from lib.config import BeaconConfigParser
     import re
 
     prog = re.compile(r'\.wav$')
@@ -63,6 +62,7 @@ def startrec(arg_from, debug=False):
     Otherwise, treats arg_from as datestr (e.g. 20171028)
     """
     from datetime import datetime
+    from lib.fileio import open_db_file
     import math
     import re
     import time
@@ -160,7 +160,7 @@ def main():
         default=False,
         help='enable debug')
     parser.add_argument('-f', '--from',
-        # nargs=1,
+        # required=True,
         help='process from "new" (default), or datestr (e.g. 20171028)')
     parser.add_argument('--daemon',
         # nargs=1,
@@ -173,6 +173,8 @@ def main():
     # Check arguments
     if args.arg_from == 'new':
         pass
+    elif args.arg_from is None:
+        args.arg_from = 'new'
     else:
         m = re.match(r'[0-9]{8}$', args.arg_from)
         if not m:

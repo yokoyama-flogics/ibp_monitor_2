@@ -16,10 +16,23 @@ class TestLibFileIO(unittest.TestCase):
         # top directory)
         self.origdir = os.getcwd()
         os.chdir(os.path.join(os.path.dirname(__file__), '.'))
+
+        # Prepare a config file
         shutil.copyfile('test_config.cfg', 'bm2.cfg')
 
+        # Remove temporary directory to test mkdir_if_required()
+        shutil.rmtree('tmp', ignore_errors=True)
+
     def tearDown(self):
+        import shutil
+
+        # Remove the config file
         os.remove('bm2.cfg')
+
+        # Remove temporary directory to test mkdir_if_required()
+        shutil.rmtree('tmp', ignore_errors=True)
+
+        # chdir to the saved directory
         os.chdir(self.origdir)
 
     def test_fileio_nodbfile(self):
@@ -30,6 +43,13 @@ class TestLibFileIO(unittest.TestCase):
     def test_fileio_dbfile(self):
         dbfile = open_db_file('test.db', 'r')
         self.assertEqual(dbfile.readline(), 'Test Database\n')
+
+    def test_mkdir_if_required(self):
+        mkdir_if_required('tmp/foo')
+        try:
+            mkdir_if_required('tmp/foo')
+        except:
+            self.fail('test_mkdir_if_required() asserted a exception')
 
 if __name__ == "__main__":
     unittest.main(buffer=True)

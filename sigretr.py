@@ -91,6 +91,7 @@ def write_wav_file(filename, data, to_signal_dir=False):
     If to_signal_dir is True, written to the standard direcotry.
     """
     from lib.config import BeaconConfigParser
+    from lib.fileio import mkdir_if_required
     import os
     import wave
 
@@ -101,13 +102,7 @@ def write_wav_file(filename, data, to_signal_dir=False):
             sigdir += '/'
         filename = sigdir + filename
 
-    dirname = os.path.dirname(filename)
-    if dirname != '':
-        try:
-            os.makedirs(dirname)
-        except OSError as err:
-            if err[1] != 'File exists':
-                raise err
+    mkdir_if_required(filename)
 
     # Read parameter samplerate from config file
     samplerate = BeaconConfigParser().getint('Signal', 'samplerate')

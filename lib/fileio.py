@@ -24,7 +24,6 @@ def connect_database():
     import sqlite3
     database_file = BeaconConfigParser().get('Common', 'database')
     mkdir_if_required(database_file)
-    print database_file
     return sqlite3.connect(database_file)
 
 def main():

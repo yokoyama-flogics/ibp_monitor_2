@@ -55,6 +55,40 @@ def nextday_datestr(datestr):
     nextday = datetime.strptime(datestr, '%Y%m%d') + timedelta(days=1)
     return nextday.strftime('%Y%m%d')
 
+def register_db(datestr, timestr, mhz, debug=False):
+    from datetime import datetime
+    from lib.config import BeaconConfigParser
+    from lib.fileio import connect_database
+    from lib.ibp import mhz_to_freq_khz
+
+    # Convert datestr and timestr to seconds from epoch
+    datetime_utc = datetime.strptime(
+        datestr + ' ' + timestr, '%Y%m%d %H%M%S')
+    seconds_from_epoch = int(
+        (datetime_utc - datetime.utcfromtimestamp(0)).total_seconds())
+    if debug:
+        print "seconds_from_epoch:", seconds_from_epoch
+    if seconds_from_epoch % 10 != 0:
+        raise Exception('seconds_from_epoch is not multiple of 10 seconds')
+
+    # Obtain parameters from configuration
+    config = BeaconConfigParser()
+
+    conn = connect_database()
+    c = conn.cursor()
+    c.execute('''INSERT INTO
+        received(datetime, offset_ms, freq_khz, bfo_offset_hz, recorder)
+        VALUES(?,?,?,?,?)''',
+        (
+            seconds_from_epoch,
+            config.getint('Migration', 'offset_ms'),
+            mhz_to_freq_khz(mhz),
+            config.getint('Migration', 'bfo_offset_hz'),
+            config.get('Migration', 'recorder')
+        ))
+    conn.commit()
+    conn.close()
+
 def startrec(arg_from, debug=False):
     """
     Repeat signal conversion from 'arg_from'.
@@ -137,6 +171,10 @@ def startrec(arg_from, debug=False):
         m = re.search(r' (\d{2}):(\d{2}):(\d{2}) ', line)
         timestr = m.group(1) + m.group(2) + m.group(3)
 
+        # Extract frequency (kHz) from the line
+        m = re.search(r' (\d+)MHz\s*$', line)
+        mhz = int(m.group(1))
+
         # Check if generated signal files are too much
         if exceeded_sigfiles_limit():
             eprint("Signal files limit (number of size) is exceeded.")
@@ -146,6 +184,7 @@ def startrec(arg_from, debug=False):
 
         # Finally process the line
         record_one_file(datestr, timestr, curline, debug)
+        register_db(datestr, timestr, mhz, debug=True)
 
 def main():
     import argparse

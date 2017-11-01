@@ -184,7 +184,7 @@ def startrec(arg_from, debug=False):
 
         # Finally process the line
         record_one_file(datestr, timestr, curline, debug)
-        register_db(datestr, timestr, mhz, debug=True)
+        register_db(datestr, timestr, mhz, debug=debug)
 
 def main():
     import argparse

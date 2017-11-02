@@ -9,6 +9,11 @@ SCHEMA = \
         `freq_khz`              INTEGER,
         `bfo_offset_hz`         INTEGER,
         `recorder`              TEXT,
+        `char1_max_sn`          REAL,
+        `char1_best_pos_hz`     INTEGER,
+        `char1_total_ct`        INTEGER,
+        `char1_bg_pos_hz`       INTEGER,
+        `char1_bg_sn`           REAL,
         PRIMARY KEY(`datetime`)
 )'''
 

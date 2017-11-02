@@ -96,11 +96,7 @@ def write_wav_file(filename, data, to_signal_dir=False):
     import wave
 
     if to_signal_dir:
-        config = BeaconConfigParser()
-        sigdir = config.get('Signal', 'dir')
-        if sigdir[-1] != '/':
-            sigdir += '/'
-        filename = sigdir + filename
+        filename = getpath_signalfile(filename)
 
     mkdir_if_required(filename)
 

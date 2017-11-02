@@ -26,6 +26,15 @@ def connect_database():
     mkdir_if_required(database_file)
     return sqlite3.connect(database_file)
 
+def getpath_signalfile(filename):
+    """
+    Return the actual path name of signal file by given filename
+    """
+    sigdir = BeaconConfigParser().get('Signal', 'dir')
+    if sigdir[-1] != '/':
+        sigdir += '/'
+    return sigdir + filename
+
 def main():
     pass
 

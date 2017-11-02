@@ -91,9 +91,44 @@ def write_wav_file(filename, data, to_signal_dir=False):
     If to_signal_dir is True, written to the standard direcotry.
     """
     from lib.config import BeaconConfigParser
-    from lib.fileio import mkdir_if_required
+    from lib.fileio import mkdir_if_required, getpath_signalfile
     import os
     import wave
+
+    # First, we need to take care of PCM2902 lag between L and R channels
+    iqlag = BeaconConfigParser().getint('Migration', 'iqlag')
+    if iqlag > 0:
+            i_ch_lag = iqlag
+            q_ch_lag = 0
+    else:
+            i_ch_lag = 0
+            q_ch_lag = -iqlag
+
+    n_samples = len(data) / 4   # I_low, I_high, Q_low, Q_high, ...
+
+    # Take account lag and split to I/Q
+    def limit(val, maxval):
+        if val > maxval:
+            val = maxval
+        return val
+
+    def substr(s, start, len):
+        return s[start:start + len]
+
+    i_ch = {}
+    q_ch = {}
+    for i in range(n_samples):
+        i_pos = limit(i + i_ch_lag, n_samples - 1)
+        q_pos = limit(i + q_ch_lag, n_samples - 1)
+
+        i_ch[i] = substr(data, ((i_pos * 2 + 0) * 2), 2)  # I comes first
+        q_ch[i] = substr(data, ((q_pos * 2 + 1) * 2), 2)  # I comes first
+
+    # Reconstruct stream from I/Q
+    data = ''
+    for i in range(n_samples):
+        data += i_ch[i]
+        data += q_ch[i]
 
     if to_signal_dir:
         filename = getpath_signalfile(filename)

@@ -41,8 +41,27 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     Actually calculate characteristics of the record and store them into the
     database.
     """
+    import numpy as np
+    import sys          # XXX
+
     if debug:
         eprint(samplerate, offset_ms, bfo_offset_hz)
+
+    dtype = np.int16        # Type of each value of I or Q
+    n_channels = 2          # sigdata must be L/R (I/Q) structure
+    len_input_sec = 10      # Length of sigdata must be 10 seconds signal
+
+    n_samples = samplerate * len_input_sec
+
+    if len(sigdata) != n_samples * n_channels * np.dtype(dtype).itemsize:
+        raise Exception('Length of sigdata is illegal')
+
+    # Convert the sigdata (raw stream) to input complex vector
+    iq_matrix = np.frombuffer(sigdata, dtype=dtype).reshape((n_samples, 2))
+    input_vec = iq_matrix[..., 0] + 1j * iq_matrix[..., 1]
+    print input_vec, len(input_vec)
+
+    sys.exit(0)
 
 def charex_all(debug=False):
     """

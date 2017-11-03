@@ -296,13 +296,15 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     # print ct_pos[lower_pos : upper_pos + 1]
     total_ct = sum(ct_pos[lower_pos : upper_pos + 1])
 
-    print 'SN:  %4.1f Bias: %4d Ct: %d IF: %4d  %4.1f Z:  -1  -1.0' % \
-        (max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos), bg_sn)
+    if debug:
+        print 'SN:  %4.1f Bias: %4d Ct: %d IF: %4d  %4.1f Z:  -1  -1.0' % \
+            (max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos),
+            bg_sn)
 
     return character1(max_sn, bin_to_freq(best_pos), total_ct,
         bin_to_freq(bg_pos), bg_sn)
 
-def charex_all(onepass=False, debug=False):
+def charex_all(onepass=False, force=False, debug=False):
     """
     Retrieve any record in the database, which doesn't have calculated
     characteristics by this charex.py yet, and pass them to charex()
@@ -313,10 +315,18 @@ def charex_all(onepass=False, debug=False):
     conn = connect_database()
     while True:
         c = conn.cursor()
+
+        # If specified 'force', even the record has characteristics parameters,
+        # fetch any records for update.
+        if force:
+            cond = ''
+        else:
+            cond = 'WHERE char1_max_sn IS NULL'
+
         c.execute('''SELECT datetime, offset_ms, bfo_offset_hz
             FROM received
-            WHERE char1_max_sn IS NULL
-            ORDER BY datetime''')
+            %s
+            ORDER BY datetime''' % (cond))
 
         for row in c.fetchall():
             sigdata, samplerate = read_sigdata(datetime_sec = row[0])
@@ -326,6 +336,9 @@ def charex_all(onepass=False, debug=False):
         if onepass:
             break
         else:
+            # For continuous passes, 'force fetch' is NOT required
+            force = False
+            # To let rest database, wait for a short time period
             time.sleep(0.5)
 
     conn.close()
@@ -342,6 +355,10 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('--force',
+        action='store_true',
+        default=False,
+        help='update database even they already have characteristics')
     parser.add_argument('-q', '--quit',
         action='store_true',
         default=False,
@@ -352,7 +369,7 @@ def main():
         help='run as daemon.  start, stop, or restart')
     args = parser.parse_args()
 
-    charex_all(onepass=args.quit, debug=args.debug)
+    charex_all(onepass=args.quit, force=args.force, debug=args.debug)
 
 if __name__ == "__main__":
     main()

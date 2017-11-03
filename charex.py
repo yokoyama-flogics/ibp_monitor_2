@@ -8,6 +8,12 @@ import sys
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+import numpy
+dtype = numpy.int16     # Type of each value of I or Q
+n_channels = 2          # sigdata must be L/R (I/Q) structure
+len_input_sec = 10      # Length of sigdata must be 10 seconds signal
+len_noise_smooth = 10   # Number of samples to find neighbor range
+
 from lib.common import eprint
 
 def read_sigdata(datetime_sec):
@@ -36,6 +42,43 @@ def read_sigdata(datetime_sec):
 
     return sigdata, samplerate
 
+def get_maxvalues_inrange(sig, len_apply):
+    """
+    Flatten signals by maximum values in neighbor range
+    This special algorithm came from Monitor-1 proc.m.
+    """
+    import numpy as np
+
+    len_sig = len(sig)
+    maxvalues = np.array(sig)
+
+    for n in range(1, len_apply):
+        maxvalues = np.maximum(
+            maxvalues,
+            np.append(np.zeros(n), sig[0 : len_sig - n]))
+
+    return maxvalues
+
+def bg_est(sig, samplerate, offset_ms):
+    """
+    Background Estimation
+    """
+    from scipy.fftpack import fft
+    import numpy as np
+
+    if offset_ms > -100:    # XXX  offset_ms may be at least -100 [ms] ...
+        raise Exception('Too short offset')
+
+    # Extract very first part which shouldn't contain beacon signal
+    bg_len = int((- offset_ms) / 1000.0 * samplerate)
+    pre_sig = sig[0 : bg_len]
+    # print pre_sig, len(pre_sig)
+
+    bg = np.absolute(fft(sig))
+    bg_smooth = get_maxvalues_inrange(bg, len_noise_smooth)
+
+    return bg, bg_smooth
+
 def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     """
     Actually calculate characteristics of the record and store them into the
@@ -52,10 +95,6 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
 
     n_filter_order = 64
     lpf_cutoff = 0.5 * 0.95
-
-    dtype = np.int16        # Type of each value of I or Q
-    n_channels = 2          # sigdata must be L/R (I/Q) structure
-    len_input_sec = 10      # Length of sigdata must be 10 seconds signal
 
     n_samples = samplerate * len_input_sec
 
@@ -89,11 +128,17 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     # as same as Monitor-1
     sig = signal.lfilter(charex.lpf, 1,
         np.append(input_vec, np.zeros(n_filter_order / 2)))
-    sig = sig[n_filter_order / 2:]
+    sig = sig[n_filter_order / 2 : ]
 
     # Applying tone (f = samplerate / 4) to shift signal upward on freq. domain
     sig *= charex.tone_f_4
-    print sig, len(sig)
+
+    # Drop imaginary parts as same as Monitor-1
+    sig = np.real(sig)
+    # print sig, len(sig)
+
+    # Background noise estimation
+    bg, bg_smooth = bg_est(sig, samplerate, offset_ms)
 
     sys.exit(0)
 

@@ -113,10 +113,9 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     from scipy.fftpack import fft
 
     # Determine which samples should be processed
-    sample_start = start - offset_ms / 1000 * samplerate
-    print sample_start, sample_start + samplerate
+    # print start, start + samplerate
 
-    sg = np.absolute(fft(sig[sample_start : sample_start + samplerate]))
+    sg = np.absolute(fft(sig[start : start + samplerate]))
     sg_smooth = get_maxvalues_inrange(sg, len_noise_smooth)
 
     # Cancelling background if requested
@@ -164,7 +163,6 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     # print pos, lvl
 
     from_sig_bin, to_sig_bin, len_sig_bin = get_sig_bins(pos)
-    print '@@@', from_sig_bin, to_sig_bin, len_sig_bin
 
     # Calculating S/N.  First get 'S'
     sg_pow = np.sum(np.power(band_sg[from_sig_bin : to_sig_bin + 1], 2))
@@ -213,7 +211,7 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
             np.exp(1j * np.deg2rad(np.arange(0, 90 * n_samples, 90)))
 
     if len(sigdata) != n_samples * n_channels * np.dtype(dtype).itemsize:
-        raise Exception('Length of sigdata is illegal')
+        raise Exception('Length of sigdata (%d) is illegal' % (len(sigdata)))
 
     # Convert the sigdata (raw stream) to input complex vector
     # It is okay that each I/Q value is 16-bit signed integer and as same as
@@ -247,8 +245,7 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     ct_pos = np.zeros(wid_freq_detect, dtype=np.int16)
 
     for n in range(sec_sg_from, sec_sg_until):
-        start = n * samplerate
-        print '$$$', n, start
+        start = n * samplerate - offset_ms / 1000 * samplerate
         lvl, pos, sn = \
             sg_est(sig, bg_smooth, start, samplerate, offset_ms, canceling=True)
         ct_pos[pos] += 1
@@ -260,12 +257,16 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     bg_len = get_bg_len(offset_ms, samplerate)
     bg_lvl, bg_pos, bg_sn = \
         sg_est(sig, bg_smooth, 0, bg_len, offset_ms, canceling=False)
+    # print 'bg_pos', bg_pos
+    # print 'bg_len', bg_len
     lower_pos, upper_pos, dummy = get_sig_bins(best_pos)
     # print lower_pos, upper_pos, ct_pos
     # print ct_pos[lower_pos : upper_pos + 1]
     total_ct = sum(ct_pos[lower_pos : upper_pos + 1])
 
-    print max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos), bg_sn
+    print 'SN:  %4.1f Bias: %4d Ct: %d IF: %4d  %4.1f Z:  -1  -1.0' % \
+        (max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos), bg_sn)
+    # sys.exit(0)
 
 def charex_all(debug=False):
     """

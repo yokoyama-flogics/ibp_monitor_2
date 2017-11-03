@@ -25,6 +25,39 @@ offset_sn_split = 1     # number of FFT bin to split S/N
 
 from lib.common import eprint
 
+class character1:
+    """
+    Monitor-1 Character Parameters and Database Access Methods
+    """
+    def __init__(self, max_sn, best_pos_hz, total_ct, bg_pos_hz, bg_sn):
+        self.max_sn = max_sn
+        self.best_pos_hz = best_pos_hz
+        self.total_ct = total_ct
+        self.bg_pos_hz = bg_pos_hz
+        self.bg_sn = bg_sn
+
+    def updatedb(self, dbconn, datetime_sec):
+        """
+        Update SQLite database dbconn by the parameters for datetime_sec 
+        """
+        c = dbconn.cursor()
+        c.execute('''UPDATE received SET
+            char1_max_sn = ?,
+            char1_best_pos_hz = ?,
+            char1_total_ct = ?,
+            char1_bg_pos_hz = ?,
+            char1_bg_sn = ?
+            WHERE datetime = ?''',
+            (
+                self.max_sn,
+                self.best_pos_hz,
+                self.total_ct,
+                self.bg_pos_hz,
+                self.bg_sn,
+                datetime_sec
+            ))
+        dbconn.commit()
+
 def read_sigdata(datetime_sec):
     """
     Read signal data (as a raw byte stream) which corresponds to the specified
@@ -53,7 +86,7 @@ def read_sigdata(datetime_sec):
 
 def get_maxvalues_inrange(sig, len_apply):
     """
-    Flatten signals by maximum values in neighbor range
+    Flatten signals spectrum by maximum values in neighbor range (or bin).
     This special algorithm came from Monitor-1 proc.m.
     """
     len_sig = len(sig)
@@ -92,7 +125,7 @@ def bg_est(sig, samplerate, offset_ms):
 
 def get_sig_bins(pos):
     """
-    Return signal bin location parameters by pos
+    Return signal bin location parameters by central pos (position)
     """
     from_sig_bin = pos - offset_sn_split
     if from_sig_bin < 0:
@@ -107,7 +140,7 @@ def get_sig_bins(pos):
 
 def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     """
-    Signal-part Estimation and Cancelling
+    Signal-part Estimation and Background Canceling
     """
     from lib.config import BeaconConfigParser
     from scipy.fftpack import fft
@@ -178,19 +211,18 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
 
 def bin_to_freq(pos):
     """
-    Convert bin pos number to true frequency offset
+    Convert bin pos number to true frequency offset (in Hz)
     """
     return pos - wid_freq_detect / 2
 
 def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     """
-    Actually calculate characteristics of the record and store them into the
-    database.
+    Actually calculate characteristics of the signal record and return the
+    result.
     """
     from scipy import signal
-    import sys          # XXX
 
-    np.set_printoptions(edgeitems=100)   # XXX
+    # np.set_printoptions(edgeitems=100)
 
     if debug:
         eprint(samplerate, offset_ms, bfo_offset_hz)
@@ -266,25 +298,35 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
 
     print 'SN:  %4.1f Bias: %4d Ct: %d IF: %4d  %4.1f Z:  -1  -1.0' % \
         (max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos), bg_sn)
-    # sys.exit(0)
 
-def charex_all(debug=False):
+    return character1(max_sn, bin_to_freq(best_pos), total_ct,
+        bin_to_freq(bg_pos), bg_sn)
+
+def charex_all(onepass=False, debug=False):
     """
     Retrieve any record in the database, which doesn't have calculated
     characteristics by this charex.py yet, and pass them to charex()
     """
     from lib.fileio import connect_database
+    import time
 
     conn = connect_database()
-    c = conn.cursor()
-    c.execute('''SELECT datetime, offset_ms, bfo_offset_hz
-        FROM received
-        WHERE char1_max_sn IS NULL
-        ORDER BY datetime''')
+    while True:
+        c = conn.cursor()
+        c.execute('''SELECT datetime, offset_ms, bfo_offset_hz
+            FROM received
+            WHERE char1_max_sn IS NULL
+            ORDER BY datetime''')
 
-    for row in c.fetchall():
-        sigdata, samplerate = read_sigdata(datetime_sec = row[0])
-        charex(sigdata, samplerate, row[1], row[2], debug=debug)
+        for row in c.fetchall():
+            sigdata, samplerate = read_sigdata(datetime_sec = row[0])
+            paramset = charex(sigdata, samplerate, row[1], row[2], debug=debug)
+            paramset.updatedb(conn, row[0])
+
+        if onepass:
+            break
+        else:
+            time.sleep(0.5)
 
     conn.close()
 
@@ -300,13 +342,17 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('-q', '--quit',
+        action='store_true',
+        default=False,
+        help='quit after one-pass')
     parser.add_argument('--daemon',
         # nargs=1,
         choices=['start', 'stop', 'restart'],
         help='run as daemon.  start, stop, or restart')
     args = parser.parse_args()
 
-    charex_all(debug=args.debug)
+    charex_all(onepass=args.quit, debug=args.debug)
 
 if __name__ == "__main__":
     main()

@@ -66,6 +66,12 @@ def get_maxvalues_inrange(sig, len_apply):
 
     return maxvalues
 
+def get_bg_len(offset_ms, samplerate):
+    """
+    Return length of samples which belongs to no-beacon signal part
+    """
+    return int((- offset_ms) / 1000.0 * samplerate)
+
 def bg_est(sig, samplerate, offset_ms):
     """
     Background Estimation
@@ -76,13 +82,28 @@ def bg_est(sig, samplerate, offset_ms):
         raise Exception('Too short offset')
 
     # Extract very first part which shouldn't contain beacon signal
-    bg_len = int((- offset_ms) / 1000.0 * samplerate)
+    bg_len = get_bg_len(offset_ms, samplerate)
     pre_sig = sig[0 : bg_len]
 
     bg = np.absolute(fft(pre_sig))
     bg_smooth = get_maxvalues_inrange(bg, len_noise_smooth)
 
     return bg, bg_smooth
+
+def get_sig_bins(pos):
+    """
+    Return signal bin location parameters by pos
+    """
+    from_sig_bin = pos - offset_sn_split
+    if from_sig_bin < 0:
+        from_sig_bin = 0
+
+    to_sig_bin = pos + offset_sn_split
+    if to_sig_bin >= wid_freq_detect:
+        to_sig_bin = wid_freq_detect - 1
+    len_sig_bin = to_sig_bin - from_sig_bin + 1
+
+    return from_sig_bin, to_sig_bin, len_sig_bin
 
 def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     """
@@ -142,27 +163,26 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     # print a_pos, a_lvl
     # print pos, lvl
 
+    from_sig_bin, to_sig_bin, len_sig_bin = get_sig_bins(pos)
+    print '@@@', from_sig_bin, to_sig_bin, len_sig_bin
+
     # Calculating S/N.  First get 'S'
-    from_sig_bin = pos - offset_sn_split
-    if from_sig_bin < 0:
-        from_sig_bin = 0
-
-    to_sig_bin = pos + offset_sn_split
-    if to_sig_bin >= len(band_sg):
-        to_sig_bin = len(band_sg) - 1
-    len_bin_sig = to_sig_bin - from_sig_bin + 1
-
-    # print from_sig_bin, to_sig_bin
     sg_pow = np.sum(np.power(band_sg[from_sig_bin : to_sig_bin + 1], 2))
 
     # Then get 'N'
-    band_sg[from_sig_bin : to_sig_bin + 1] = np.zeros(len_bin_sig)
+    band_sg[from_sig_bin : to_sig_bin + 1] = np.zeros(len_sig_bin)
     # print band_sg
 
     sn_db = np.log10(sg_pow / np.sum(np.power(band_sg, 2))) * 10
     # print sn_db
 
     return lvl, pos, sn_db
+
+def bin_to_freq(pos):
+    """
+    Convert bin pos number to true frequency offset
+    """
+    return pos - wid_freq_detect / 2
 
 def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     """
@@ -224,15 +244,28 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     # Now, start analysis in signal parts of time domain
     max_sn = -np.inf
     best_pos = 0
-    ct_pos = np.zeros(wid_freq_detect)
+    ct_pos = np.zeros(wid_freq_detect, dtype=np.int16)
 
     for n in range(sec_sg_from, sec_sg_until):
         start = n * samplerate
         print '$$$', n, start
         lvl, pos, sn = \
             sg_est(sig, bg_smooth, start, samplerate, offset_ms, canceling=True)
+        ct_pos[pos] += 1
+        if sn > max_sn:
+            max_sn = sn
+            best_pos = pos
 
-    sys.exit(0)
+    # Calculating values in the no-signal part (beginning part)
+    bg_len = get_bg_len(offset_ms, samplerate)
+    bg_lvl, bg_pos, bg_sn = \
+        sg_est(sig, bg_smooth, 0, bg_len, offset_ms, canceling=False)
+    lower_pos, upper_pos, dummy = get_sig_bins(best_pos)
+    # print lower_pos, upper_pos, ct_pos
+    # print ct_pos[lower_pos : upper_pos + 1]
+    total_ct = sum(ct_pos[lower_pos : upper_pos + 1])
+
+    print max_sn, bin_to_freq(best_pos), total_ct, bin_to_freq(bg_pos), bg_sn
 
 def charex_all(debug=False):
     """

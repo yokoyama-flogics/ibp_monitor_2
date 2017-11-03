@@ -39,10 +39,11 @@ def record_one_file(datestr, timestr, line, debug=False):
     Note that the 'line' is true line number of the file.  Comment line is also
     counted.
     """
-    from sigretr import retrieve_signal, write_wav_file
+    from sigretr import retrieve_signal, write_wav_file, adjust_len
 
     # Read signal data from raw file, and write it as .wav file
     sig = retrieve_signal(datestr, line, debug=False)
+    sig = adjust_len(sig)
     write_wav_file(datestr + '/' + timestr + '.wav', sig, to_signal_dir=True)
 
 def nextday_datestr(datestr):

@@ -145,6 +145,15 @@ def write_wav_file(filename, data, to_signal_dir=False):
     wavfile.writeframesraw(data)
     wavfile.close()
 
+def adjust_len(sig):
+    nominal_len = 640000
+    if len(sig) < nominal_len:
+        sig += chr(0) * (nominal_len - len(sig))
+    elif len(sig) > nominal_len:
+        sig = sig[: nominal_len]
+
+    return sig
+
 def main():
     import argparse
     import re
@@ -157,6 +166,10 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('--exactlen',
+        action='store_true',
+        default=False,
+        help='output exact length samples even data is short')
     parser.add_argument('date',
         help='date string e.g. 20171028')
     parser.add_argument('line',
@@ -176,6 +189,11 @@ def main():
 
     # Read signal data from raw file, and write it as .wav file
     sig = retrieve_signal(args.date, args.line, debug=args.debug)
+
+    # Adjust signal length if required
+    if not args.exactlen:
+        sig = adjust_len(sig)
+
     write_wav_file(args.output_file, sig)
 
 if __name__ == "__main__":

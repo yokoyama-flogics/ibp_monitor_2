@@ -8,11 +8,19 @@ import sys
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-import numpy
-dtype = numpy.int16     # Type of each value of I or Q
+import numpy as np
+dtype = np.int16        # Type of each value of I or Q
 n_channels = 2          # sigdata must be L/R (I/Q) structure
 len_input_sec = 10      # Length of sigdata must be 10 seconds signal
 len_noise_smooth = 10   # Number of samples to find neighbor range
+wid_freq_detect = 500   # Width of frequency (in Hz) to detect beacon
+                        # (as same as detect_freq_width of Monitor-1)
+sec_sg_from = 0         # stat time where beacon can be heard
+                        # (definition was changed from Monitor-1)
+sec_sg_until = 7        # end time where beacon can be heard
+                        # (definition was changed from Monitor-1)
+n_filter_order = 64
+lpf_cutoff = 0.5 * 0.95
 
 from lib.common import eprint
 
@@ -47,8 +55,6 @@ def get_maxvalues_inrange(sig, len_apply):
     Flatten signals by maximum values in neighbor range
     This special algorithm came from Monitor-1 proc.m.
     """
-    import numpy as np
-
     len_sig = len(sig)
     maxvalues = np.array(sig)
 
@@ -64,7 +70,6 @@ def bg_est(sig, samplerate, offset_ms):
     Background Estimation
     """
     from scipy.fftpack import fft
-    import numpy as np
 
     if offset_ms > -100:    # XXX  offset_ms may be at least -100 [ms] ...
         raise Exception('Too short offset')
@@ -72,12 +77,71 @@ def bg_est(sig, samplerate, offset_ms):
     # Extract very first part which shouldn't contain beacon signal
     bg_len = int((- offset_ms) / 1000.0 * samplerate)
     pre_sig = sig[0 : bg_len]
-    # print pre_sig, len(pre_sig)
 
-    bg = np.absolute(fft(sig))
+    bg = np.absolute(fft(pre_sig))
     bg_smooth = get_maxvalues_inrange(bg, len_noise_smooth)
 
     return bg, bg_smooth
+
+def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
+    """
+    Signal-part Estimation and Cancelling
+    """
+    from lib.config import BeaconConfigParser
+    from scipy.fftpack import fft
+
+    # Determine which samples should be processed
+    sample_start = start - offset_ms / 1000 * samplerate
+    print sample_start, sample_start + samplerate
+
+    sg = np.absolute(fft(sig[sample_start : sample_start + samplerate]))
+    sg_smooth = get_maxvalues_inrange(sg, len_noise_smooth)
+
+    # Cancelling background if requested
+    if canceling:
+        true_sig = (sg_smooth / len(sg) * len(bg)) / bg
+    else:
+        true_sig = sg_smooth
+
+    # Find the sig peak freq
+    # It is done in the smoothed signal (background noise cancelled).
+    # Now the real signal consists of +/- (sample_rate / 4) [Hz].
+    # The true_sig() consists of +/- (detect_freq_width / 2) [Hz].
+    bfo_offset_hz = BeaconConfigParser().getint('Migration', 'bfo_offset_hz')
+    band_start = samplerate / 4 + bfo_offset_hz - wid_freq_detect / 2
+    band_end   = samplerate / 4 + bfo_offset_hz + wid_freq_detect / 2
+    band = true_sig[band_start : band_end]
+
+    # Find approximate largest value and position in band
+    a_pos = np.argmax(band)
+    a_lvl = band[a_pos]
+
+    # Next, obtain band_sg.  band_sg is not smoothed signal different from
+    # sg_smooth
+    band_sg = sg[band_start : band_end]
+
+    # To accurately find the peak, using the not-smoothed signal but need
+    # to eliminate not-likely spectrum.
+    end_low_eliminate = a_pos - len_noise_smooth + 1
+    if end_low_eliminate < 0:
+        end_low_eliminate = 0
+
+    begin_high_eliminate = a_pos + len_noise_smooth
+    if begin_high_eliminate > len(band_sg):
+        begin_high_eliminate = len(band_sg)
+    len_high_eliminate = len(band_sg) - begin_high_eliminate
+
+    band_sg[0 : end_low_eliminate] = np.zeros(end_low_eliminate)
+    band_sg[begin_high_eliminate : ] = np.zeros(len_high_eliminate)
+    # print a_pos, band_sg
+
+    # Find the exact largest value and position in band
+    pos = np.argmax(band_sg)
+    lvl = band_sg[pos]
+    print a_pos, a_lvl
+    print pos, lvl
+
+    return None, None, None
 
 def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     """
@@ -85,16 +149,12 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     database.
     """
     from scipy import signal
-    import numpy as np
     import sys          # XXX
 
     np.set_printoptions(edgeitems=100)   # XXX
 
     if debug:
         eprint(samplerate, offset_ms, bfo_offset_hz)
-
-    n_filter_order = 64
-    lpf_cutoff = 0.5 * 0.95
 
     n_samples = samplerate * len_input_sec
 
@@ -139,6 +199,17 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
 
     # Background noise estimation
     bg, bg_smooth = bg_est(sig, samplerate, offset_ms)
+
+    # Now, start analysis in signal parts of time domain
+    max_sn = -np.inf
+    best_pos = 0
+    ct_pos = np.zeros(wid_freq_detect)
+
+    for n in range(sec_sg_from, sec_sg_until):
+        start = n * samplerate
+        print '$$$', n, start
+        lvl, pos, sn = \
+            sg_est(sig, bg_smooth, start, samplerate, offset_ms, canceling=True)
 
     sys.exit(0)
 

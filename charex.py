@@ -9,11 +9,11 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 import numpy as np
-dtype = np.int16        # Type of each value of I or Q
+dtype = np.int16        # type of each value of I or Q
 n_channels = 2          # sigdata must be L/R (I/Q) structure
-len_input_sec = 10      # Length of sigdata must be 10 seconds signal
-len_noise_smooth = 10   # Number of samples to find neighbor range
-wid_freq_detect = 500   # Width of frequency (in Hz) to detect beacon
+len_input_sec = 10      # length of sigdata must be 10 seconds signal
+len_noise_smooth = 10   # number of samples to find neighbor range
+wid_freq_detect = 500   # width of frequency (in Hz) to detect beacon
                         # (as same as detect_freq_width of Monitor-1)
 sec_sg_from = 0         # stat time where beacon can be heard
                         # (definition was changed from Monitor-1)
@@ -21,6 +21,7 @@ sec_sg_until = 7        # end time where beacon can be heard
                         # (definition was changed from Monitor-1)
 n_filter_order = 64
 lpf_cutoff = 0.5 * 0.95
+offset_sn_split = 1     # number of FFT bin to split S/N
 
 from lib.common import eprint
 
@@ -138,10 +139,30 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     # Find the exact largest value and position in band
     pos = np.argmax(band_sg)
     lvl = band_sg[pos]
-    print a_pos, a_lvl
-    print pos, lvl
+    # print a_pos, a_lvl
+    # print pos, lvl
 
-    return None, None, None
+    # Calculating S/N.  First get 'S'
+    from_sig_bin = pos - offset_sn_split
+    if from_sig_bin < 0:
+        from_sig_bin = 0
+
+    to_sig_bin = pos + offset_sn_split
+    if to_sig_bin >= len(band_sg):
+        to_sig_bin = len(band_sg) - 1
+    len_bin_sig = to_sig_bin - from_sig_bin + 1
+
+    # print from_sig_bin, to_sig_bin
+    sg_pow = np.sum(np.power(band_sg[from_sig_bin : to_sig_bin + 1], 2))
+
+    # Then get 'N'
+    band_sg[from_sig_bin : to_sig_bin + 1] = np.zeros(len_bin_sig)
+    # print band_sg
+
+    sn_db = np.log10(sg_pow / np.sum(np.power(band_sg, 2))) * 10
+    # print sn_db
+
+    return lvl, pos, sn_db
 
 def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     """

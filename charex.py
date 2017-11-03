@@ -41,11 +41,17 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     Actually calculate characteristics of the record and store them into the
     database.
     """
+    from scipy import signal
     import numpy as np
     import sys          # XXX
 
+    np.set_printoptions(edgeitems=100)   # XXX
+
     if debug:
         eprint(samplerate, offset_ms, bfo_offset_hz)
+
+    n_filter_order = 64
+    lpf_cutoff = 0.5 * 0.95
 
     dtype = np.int16        # Type of each value of I or Q
     n_channels = 2          # sigdata must be L/R (I/Q) structure
@@ -53,13 +59,41 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
 
     n_samples = samplerate * len_input_sec
 
+    # Generating an LPF
+    # Not sure if we can apply Nuttall window and also Hamming window which
+    # firwin() automatically applies.  But as same as Beacon Monitor-1 code.
+    if 'lpf' not in dir(charex):
+        charex.lpf = signal.nuttall(n_filter_order + 1) \
+                   * signal.firwin(n_filter_order + 1, lpf_cutoff)
+
+    # Generating an complex tone (f = samplerate / 4)
+    # XXX  There are errors in latter elements but ignorable...
+    if 'tone_f_4' not in dir(charex):
+        charex.tone_f_4 = \
+            np.exp(1j * np.deg2rad(np.arange(0, 90 * n_samples, 90)))
+
     if len(sigdata) != n_samples * n_channels * np.dtype(dtype).itemsize:
         raise Exception('Length of sigdata is illegal')
 
     # Convert the sigdata (raw stream) to input complex vector
+    # It is okay that each I/Q value is 16-bit signed integer and as same as
+    # the original Beacon Monitor-1 libexec/proc.m (MATLAB implementation).
     iq_matrix = np.frombuffer(sigdata, dtype=dtype).reshape((n_samples, 2))
     input_vec = iq_matrix[..., 0] + 1j * iq_matrix[..., 1]
-    print input_vec, len(input_vec)
+
+    # input_vec is like this.
+    # [ 88.-30.j  87.-29.j  88.-27.j ...,  -2. +4.j  -2. +0.j  -2. -1.j]
+    # print input_vec, len(input_vec)
+
+    # Apply LPF to narrow band width to half, and remove preceding samples
+    # as same as Monitor-1
+    sig = signal.lfilter(charex.lpf, 1,
+        np.append(input_vec, np.zeros(n_filter_order / 2)))
+    sig = sig[n_filter_order / 2:]
+
+    # Applying tone (f = samplerate / 4) to shift signal upward on freq. domain
+    sig *= charex.tone_f_4
+    print sig, len(sig)
 
     sys.exit(0)
 

@@ -2,7 +2,7 @@
 Database Initializer
 """
 
-SCHEMA = \
+SCHEMA_RECEIVED = \
 '''CREATE TABLE `received` (
         `datetime`              INTEGER UNIQUE,
         `offset_ms`             INTEGER,
@@ -17,24 +17,36 @@ SCHEMA = \
         PRIMARY KEY(`datetime`)
 )'''
 
+SCHEMA_BIASHIST = \
+'''CREATE TABLE `biashist` (
+        `datetime`              INTEGER UNIQUE,
+        `band`                  INTEGER,
+        `sn`                    REAL,
+        `bias_hz`               INTEGER,
+        `ct`                    INTEGER,
+        PRIMARY KEY(`datetime`)
+)'''
+
 from lib.common import eprint
 from lib.fileio import connect_database
 
-def init_db(destroy='no', debug=False):
+def init_db(destroy='no', preserve=False, debug=False):
     from lib.config import BeaconConfigParser
     import os
     if destroy != 'yes':
         raise Exception('Not accepted by "yes"')
 
-    try:
-        os.remove(BeaconConfigParser().get('Common', 'database'))
-    except OSError as err:
-        if err[1] != 'No such file or directory':
-            raise
+    if not preserve:
+        try:
+            os.remove(BeaconConfigParser().get('Common', 'database'))
+        except OSError as err:
+            if err[1] != 'No such file or directory':
+                raise
 
     conn = connect_database()
     c = conn.cursor()
-    c.execute(SCHEMA)
+    c.execute(SCHEMA_RECEIVED)
+    c.execute(SCHEMA_BIASHIST)
     conn.commit()
     conn.close()
     eprint('Database is initialized and set up.')
@@ -51,6 +63,10 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('--preserve',
+        action='store_true',
+        default=False,
+        help='do not erase database file')
     parser.add_argument('agree',
         help='say "agree" to initialize database')
     args = parser.parse_args()
@@ -66,7 +82,7 @@ def main():
     s = raw_input("It's unrecoverable.  Are you sure? (yes or no): ")
 
     if s == 'yes':
-        init_db(destroy='yes', debug=args.debug)
+        init_db(destroy='yes', preserve=args.preserve, debug=args.debug)
     else:
         eprint('Aborted.  (Not initialized.)')
 

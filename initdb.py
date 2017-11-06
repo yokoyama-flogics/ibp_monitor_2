@@ -14,6 +14,9 @@ SCHEMA_RECEIVED = \
         `char1_total_ct`        INTEGER,
         `char1_bg_pos_hz`       INTEGER,
         `char1_bg_sn`           REAL,
+        `bayes1_sn`             REAL,
+        `bayes1_bias`           REAL,
+        `bayes1_prob`           REAL,
         PRIMARY KEY(`datetime`)
 )'''
 

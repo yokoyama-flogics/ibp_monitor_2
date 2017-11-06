@@ -103,10 +103,10 @@ def stations_to_yaml(stations):
 
     return s
 
-def get_slot(timesec, band):
+def get_slot(datetime_sec, band):
     """
-    Return IBP schedule time slot (0 ... 17) from given timesec (second from
-    UNIX time epoch) and band (14, 18, ..., 28) MHz value
+    Return IBP schedule time slot (0 ... 17) from given datetime_sec (second
+    from UNIX time epoch) and band (14, 18, ..., 28) MHz value
     """
     time_xmit = 10  # sec (transmitting time length)
     n_slots = 18    # number of slots
@@ -120,7 +120,7 @@ def get_slot(timesec, band):
         28: 4
     }
 
-    timeslot_in_sched = int(timesec % period_sched) / time_xmit
+    timeslot_in_sched = int(datetime_sec % period_sched) / time_xmit
     return (timeslot_in_sched - slot_offset[band]) % n_slots
 
 class Station:

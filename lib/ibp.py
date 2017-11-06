@@ -40,6 +40,12 @@ def mhz_to_freq_khz(mhz):
         28: 28200
     }[mhz]
 
+def freq_khz_to_mhz(freq_khz):
+    """
+    Convert frequency in kHz to band (or MHz value)
+    """
+    return freq_khz / 1000
+
 def obtain_list_from_ncdxf():
     """
     Obtain beacon stations list from NXDXF web site
@@ -96,6 +102,26 @@ def stations_to_yaml(stations):
         slot_id += 1
 
     return s
+
+def get_slot(timesec, band):
+    """
+    Return IBP schedule time slot (0 ... 17) from given timesec (second from
+    UNIX time epoch) and band (14, 18, ..., 28) MHz value
+    """
+    time_xmit = 10  # sec (transmitting time length)
+    n_slots = 18    # number of slots
+    period_sched = n_slots * time_xmit
+
+    slot_offset = {
+        14: 0,
+        18: 1,
+        21: 2,
+        24: 3,
+        28: 4
+    }
+
+    timeslot_in_sched = int(timesec % period_sched) / time_xmit
+    return (timeslot_in_sched - slot_offset[band]) % n_slots
 
 class Station:
     """

@@ -38,13 +38,12 @@ def biashist_mig_band(dbconn, band, filename, force=False):
                     bias_hz,
                     ct
                 ))
+            dbconn.commit()
         except sqlite3.IntegrityError as err:
             if not force:
                 raise
-            if err[0] != 'UNIQUE constraint failed: biashist.datetime':
+            elif err[0] != 'UNIQUE constraint failed: biashist.datetime':
                 raise
-
-        dbconn.commit()
 
 def biashist_mig_all(force=False, debug=False):
     from lib.config import BeaconConfigParser
@@ -59,7 +58,7 @@ def biashist_mig_all(force=False, debug=False):
         for file in os.listdir(dbdir):
             if fnmatch(file, 'ibprec_*_%dMHz.hist' % (band)):
                 if debug:
-                    print "Processing", file
+                    print "Migrating", file
                 biashist_mig_band(conn, band, os.path.join(dbdir, file),
                     force=force)
 

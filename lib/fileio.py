@@ -15,10 +15,10 @@ def mkdir_if_required(filename):
                 raise
 
 def open_db_file(name, mode=None):
+    import os
+
     dbdir = BeaconConfigParser().get('Migration', 'dbdir')
-    if dbdir[-1] != '/':
-        dbdir += '/'
-    return open(dbdir + name, mode)
+    return open(os.path.join(dbdir, name), mode)
 
 def connect_database():
     import sqlite3
@@ -30,10 +30,10 @@ def getpath_signalfile(filename):
     """
     Return the actual path name of signal file by given filename
     """
+    import os
+
     sigdir = BeaconConfigParser().get('Signal', 'dir')
-    if sigdir[-1] != '/':
-        sigdir += '/'
-    return sigdir + filename
+    return os.path.join(sigdir, filename)
 
 def main():
     pass

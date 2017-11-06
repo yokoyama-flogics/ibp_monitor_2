@@ -20,11 +20,11 @@ def biashist_mig_band(dbconn, band, recorder, filename, ignore_err=False):
 
     for line in open(filename, 'r').readlines():
         m = re.match('(\d+) .*SN: *([\d.-]+) Bias: *([\d.-]+) Ct: *(\d+)', line)
-        time_sec = (int(m.group(1)) + 6) / 10 * 10
+        datetime_sec = (int(m.group(1)) + 6) / 10 * 10
         sn = float(m.group(2))
         bias_hz = int(m.group(3))
         ct = int(m.group(4))
-        # print time_sec, sn, bias_hz, ct
+        # print datetime_sec, sn, bias_hz, ct
 
         c = dbconn.cursor()
         try:
@@ -32,7 +32,7 @@ def biashist_mig_band(dbconn, band, recorder, filename, ignore_err=False):
                 biashist(datetime, band, recorder, sn, bias_hz, ct)
                 VALUES(?,?,?,?,?,?)''',
                 (
-                    time_sec,
+                    datetime_sec,
                     band,
                     recorder,
                     sn,

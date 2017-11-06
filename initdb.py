@@ -21,6 +21,7 @@ SCHEMA_BIASHIST = \
 '''CREATE TABLE `biashist` (
         `datetime`              INTEGER UNIQUE,
         `band`                  INTEGER,
+        `recorder`              TEXT,
         `sn`                    REAL,
         `bias_hz`               INTEGER,
         `ct`                    INTEGER,

@@ -329,7 +329,7 @@ def charex_all(onepass=False, force=False, debug=False):
             ORDER BY datetime''' % (cond))
 
         for row in c.fetchall():
-            sigdata, samplerate = read_sigdata(datetime_sec = row[0])
+            sigdata, samplerate = read_sigdata(datetime_sec=row[0])
             paramset = charex(sigdata, samplerate, row[1], row[2], debug=debug)
             paramset.updatedb(conn, row[0])
 

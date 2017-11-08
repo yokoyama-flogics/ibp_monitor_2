@@ -17,12 +17,42 @@ def biashist(datetime_sec, band):
     (14, 18, 21, and so on), check database, and return average frequency
     bias (expected exact frequency in Hz) and standard deviation.
     """
-    from lib.ibp import Station
+    VALID_THRU = 5 * 24 * 3600  # sec
 
-    print Station().identify_station(datetime_sec, band)
+    from lib.ibp import Station, get_slot
+    from lib.fileio import connect_database
+
+    # Identify transmitting station by time and band
+    timeslot_in_sched, effective_time_sec, station = \
+        Station().identify_station(datetime_sec, band)
+    # print timeslot_in_sched, effective_time_sec, station
+
+    # valid_sec is some days before the datetime_sec
+    # Required not to obtain database records which are too old
+    valid_sec = datetime_sec - VALID_THRU
+    # print datetime_sec, valid_sec
+
+    conn = connect_database()
+    c = conn.cursor()
+    c.execute('''SELECT datetime, band
+        FROM biashist
+        WHERE datetime >= ? AND datetime >= ?
+        ORDER BY datetime''', (effective_time_sec, valid_sec))
+    for row in c.fetchall():
+        print row
+        print get_slot(row[0], row[1])
 
 def bayes(datetime_sec, band, debug=False):
+    """
+    Bayesian Inference
+    """
+    import sys
+
     print datetime_sec, band
+
+    biashist(datetime_sec, band)
+
+    sys.exit(0)
     return None
 
 def bayes_all(onepass=False, force=False, debug=False):

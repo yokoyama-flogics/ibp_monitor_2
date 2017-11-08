@@ -28,6 +28,33 @@ def callsign_to_region(callsign):
         'YV5B': 'Venezuela'
     }[callsign]
 
+def callsign_to_slot(callsign):
+    """
+    Convert callsign to IBP schedule time slot (0 ... 17)
+    This is required for migration reason.
+    """
+    return {
+        '4U1UN':  0,
+        'VE8AT':  1,
+        'W6WX':   2,
+        'KH6WO':  3,
+        'KH6RS':  3,
+        'ZL6B':   4,
+        'VK6RBP': 5,
+        'JA2IGY': 6,
+        'RR9O':   7,
+        'VR2B':   8,
+        '4S7B':   9,
+        'ZS6DN': 10,
+        '5Z4B':  11,
+        '4X6TU': 12,
+        'OH2B':  13,
+        'CS3B':  14,
+        'LU4AA': 15,
+        'OA4B':  16,
+        'YV5B':  17
+    }[callsign]
+
 def mhz_to_freq_khz(mhz):
     """
     Convert MHz to exact frequency in kHz
@@ -123,15 +150,45 @@ def get_slot(datetime_sec, band):
     timeslot_in_sched = int(datetime_sec % period_sched) / time_xmit
     return (timeslot_in_sched - slot_offset[band]) % n_slots
 
+def datetime_to_sec_from_epoch(t):
+    from datetime import datetime
+    return int((t - datetime.utcfromtimestamp(0)).total_seconds())
+
 class Station:
     """
     Represents IBP beacon stations
     """
+    # XXX  Should be changed 'class IBP'?
     def __init__(self):
         from lib.config import BeaconConfigParser
         import yaml
         yamlfile = BeaconConfigParser().get('Common', 'stations')
         self.stations = yaml.load(open(yamlfile, 'r'))
+    def identify_station(self, datetime_sec, band):
+        """
+        Identify transmitting station by datetime_sec (seconds from UNIX epoch)
+        and band (14, 18, 21, ...)
+        """
+        from datetime import datetime
+
+        latest_effective_sec = -1
+        latest_candidate = None
+
+        slot = get_slot(datetime_sec, band)
+        # debug  slot = 3 # get_slot(datetime_sec, band) # XXX
+
+        for candidate in self.stations[slot]:
+            candidate_effective_sec = \
+                datetime_to_sec_from_epoch(
+                    datetime.strptime(candidate['effective'], '%Y-%m-%d'))
+            # print candidate, candidate_effective_sec
+            if candidate_effective_sec > latest_effective_sec:
+                latest_effective_sec = candidate_effective_sec
+                latest_candidate = candidate
+                # print "found", latest_effective_sec
+        # print "Result:", latest_candidate
+
+        return slot, latest_effective_sec, latest_candidate
 
 def main():
     pass

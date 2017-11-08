@@ -17,6 +17,7 @@ def biashist_mig_band(dbconn, band, recorder, filename, ignore_err=False):
     """
     import re
     import sqlite3
+    from lib.ibp import callsign_to_slot, get_slot
 
     for line in open(filename, 'r').readlines():
         m = re.match('(\d+) .*SN: *([\d.-]+) Bias: *([\d.-]+) Ct: *(\d+)', line)
@@ -25,6 +26,15 @@ def biashist_mig_band(dbconn, band, recorder, filename, ignore_err=False):
         bias_hz = int(m.group(3))
         ct = int(m.group(4))
         # print datetime_sec, sn, bias_hz, ct
+
+        m = re.search(r'_([A-Z0-9]+)_', filename)
+        callsign = m.group(1)
+        bad_slot = get_slot(datetime_sec, band)
+        true_slot = callsign_to_slot(callsign)
+        diff = (bad_slot - true_slot) % 18
+        if diff < 2 or diff > 3:
+            # print bad_slot, callsign
+            print diff
 
         c = dbconn.cursor()
         try:

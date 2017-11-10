@@ -20,16 +20,16 @@ SCHEMA_RECEIVED = \
         PRIMARY KEY(`datetime`)
 )'''
 
-SCHEMA_BIASHIST = \
-'''CREATE TABLE `biashist` (
-        `datetime`              INTEGER UNIQUE,
-        `band`                  INTEGER,
-        `recorder`              TEXT,
-        `sn`                    REAL,
-        `bias_hz`               INTEGER,
-        `ct`                    INTEGER,
-        PRIMARY KEY(`datetime`)
-)'''
+# SCHEMA_BIASHIST = \
+# '''CREATE TABLE `biashist` (
+#         `datetime`              INTEGER UNIQUE,
+#         `band`                  INTEGER,
+#         `recorder`              TEXT,
+#         `sn`                    REAL,
+#         `bias_hz`               INTEGER,
+#         `ct`                    INTEGER,
+#         PRIMARY KEY(`datetime`)
+# )'''
 
 from lib.common import eprint
 from lib.fileio import connect_database
@@ -50,7 +50,6 @@ def init_db(destroy='no', preserve=False, debug=False):
     conn = connect_database()
     c = conn.cursor()
     c.execute(SCHEMA_RECEIVED)
-    c.execute(SCHEMA_BIASHIST)
     conn.commit()
     conn.close()
     eprint('Database is initialized and set up.')

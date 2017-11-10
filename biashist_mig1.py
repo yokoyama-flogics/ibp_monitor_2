@@ -10,51 +10,81 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
 
-def biashist_mig_band(dbconn, band, recorder, filename, ignore_err=False):
+def biashist_mig_band(dbconn, recorder, offset_ms, bfo_offset_hz, filename,
+        ignore_err=False):
     """
     Read lines from given filename (Monitor-1 biashist file) and insert them as
     database records.
     """
+    from lib.config import BeaconConfigParser
+    from lib.ibp import mhz_to_freq_khz
     import re
     import sqlite3
-    from lib.ibp import callsign_to_slot, get_slot
+    from datetime import datetime
+
+    m = re.search('_(20[0-9]+)\.log', filename)
+    date_str = m.group(1)
 
     for line in open(filename, 'r').readlines():
-        m = re.match('(\d+) .*SN: *([\d.-]+) Bias: *([\d.-]+) Ct: *(\d+)', line)
-        datetime_sec = (int(m.group(1)) + 6) / 10 * 10
-        sn = float(m.group(2))
-        bias_hz = int(m.group(3))
-        ct = int(m.group(4))
-        # print datetime_sec, sn, bias_hz, ct
+        if line.rstrip() == 'END':
+            break
 
-        m = re.search(r'_([A-Z0-9]+)_', filename)
-        callsign = m.group(1)
-        bad_slot = get_slot(datetime_sec, band)
-        true_slot = callsign_to_slot(callsign)
-        diff = (bad_slot - true_slot) % 18
-        if diff < 2 or diff > 3:
-            # print bad_slot, callsign
-            print diff
+        # Parsing characteristic parameters from *.log file
+        m = re.match(
+            '([0-9:]+) [A-Z0-9]+ +(\d+)MHz SN: *([\d.-]+) Bias: *([\d.-]+)'
+            + ' Ct: *(\d+) IF: *([\d-]+) +([\d.-]+)',
+            line)
+        datetime_sec = (datetime.strptime(
+            date_str + ' ' + m.group(1),
+            '%Y%m%d %H:%M:%S')
+            - datetime.utcfromtimestamp(0)).total_seconds()
+        freq_khz = mhz_to_freq_khz(int(m.group(2)))
+        max_sn = float(m.group(3))
+        best_pos_hz = int(m.group(4))
+        total_ct = int(m.group(5))
+        bg_pos_hz = int(m.group(6))
+        bg_sn = float(m.group(7))
+        # print datetime_sec, freq_khz, max_sn, best_pos_hz, total_ct
+        # print bg_pos_hz, bg_sn
+
+        # Originally, trying to calculate true time by comparing bad_slot and
+        # true slot.
+        # m = re.search(r'_([A-Z0-9]+)_', filename)
+        # callsign = m.group(1)
+        # bad_slot = get_slot(datetime_sec, band)
+        # true_slot = callsign_to_slot(callsign)
+        # diff = (bad_slot - true_slot) % 18
+        # if diff < 2 or diff > 3:
+        #     # print bad_slot, callsign
+        #     print diff
 
         c = dbconn.cursor()
         try:
             c.execute('''INSERT INTO
-                biashist(datetime, band, recorder, sn, bias_hz, ct)
-                VALUES(?,?,?,?,?,?)''',
+                received(datetime, offset_ms, freq_khz, bfo_offset_hz, recorder,
+                char1_max_sn, char1_best_pos_hz, char1_total_ct,
+                char1_bg_pos_hz, char1_bg_sn)
+
+                VALUES(?,?,?,?,?,?,?,?,?,?)''',
                 (
                     datetime_sec,
-                    band,
+                    offset_ms,
+                    freq_khz,
+                    bfo_offset_hz,
                     recorder,
-                    sn,
-                    bias_hz,
-                    ct
+                    max_sn,
+                    best_pos_hz,
+                    total_ct,
+                    bg_pos_hz,
+                    bg_sn
                 ))
-            dbconn.commit()
         except sqlite3.IntegrityError as err:
             if not ignore_err:
                 raise
             elif err[0] != 'UNIQUE constraint failed: biashist.datetime':
                 raise
+
+    dbconn.commit()
 
 def biashist_mig_all(ignore_err=False, debug=False):
     from lib.config import BeaconConfigParser
@@ -64,15 +94,18 @@ def biashist_mig_all(ignore_err=False, debug=False):
 
     dbdir = BeaconConfigParser().get('Migration', 'dbdir')
     recorder = BeaconConfigParser().get('Migration', 'recorder')
+    offset_ms = BeaconConfigParser().getint('Migration', 'offset_ms')
+    bfo_offset_hz = \
+        BeaconConfigParser().getint('Migration', 'bfo_offset_hz')
+
     conn = connect_database()
 
-    for band in (14, 18, 21, 24, 28):
-        for file in os.listdir(dbdir):
-            if fnmatch(file, 'ibprec_*_%dMHz.hist' % (band)):
-                if debug:
-                    print "Migrating", file
-                biashist_mig_band(conn, band, recorder,
-                    os.path.join(dbdir, file), ignore_err=ignore_err)
+    for file in os.listdir(dbdir):
+        if fnmatch(file, 'ibprec_*.log'):
+            if debug:
+                print "Migrating", file
+            biashist_mig_band(conn, recorder, offset_ms, bfo_offset_hz,
+                os.path.join(dbdir, file), ignore_err=ignore_err)
 
     conn.close()
 

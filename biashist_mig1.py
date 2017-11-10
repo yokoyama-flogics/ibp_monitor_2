@@ -29,15 +29,24 @@ def biashist_mig_band(dbconn, recorder, offset_ms, bfo_offset_hz, filename,
         if line.rstrip() == 'END':
             break
 
+        if line.rstrip() == '':
+            eprint('Found empty line.  Skipped')
+            continue
+
         # Parsing characteristic parameters from *.log file
         m = re.match(
             '([0-9:]+) [A-Z0-9]+ +(\d+)MHz SN: *([\d.-]+) Bias: *([\d.-]+)'
             + ' Ct: *(\d+) IF: *([\d-]+) +([\d.-]+)',
             line)
-        datetime_sec = (datetime.strptime(
-            date_str + ' ' + m.group(1),
-            '%Y%m%d %H:%M:%S')
-            - datetime.utcfromtimestamp(0)).total_seconds()
+        try:
+            datetime_sec = (datetime.strptime(
+                date_str + ' ' + m.group(1),
+                '%Y%m%d %H:%M:%S')
+                - datetime.utcfromtimestamp(0)).total_seconds()
+        except:
+            eprint('Found illegal line "%s".  Aborted')
+            raise
+
         freq_khz = mhz_to_freq_khz(int(m.group(2)))
         max_sn = float(m.group(3))
         best_pos_hz = int(m.group(4))
@@ -100,7 +109,7 @@ def biashist_mig_all(ignore_err=False, debug=False):
 
     conn = connect_database()
 
-    for file in os.listdir(dbdir):
+    for file in sorted(os.listdir(dbdir)):
         if fnmatch(file, 'ibprec_*.log'):
             if debug:
                 print "Migrating", file

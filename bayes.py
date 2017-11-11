@@ -23,10 +23,8 @@ class BiasHistStatistics:
 
     def add_element(self, bin, val):
         if bin in self.hist:
-            print '@@@@@', val
             self.hist[bin] += val
         else:
-            print '<<<<<', val
             self.hist[bin] = val
 
     def add_params(self, passed_sec, freq_khz, comp_freq_khz, sn, bias,
@@ -57,7 +55,7 @@ class BiasHistStatistics:
             # S/N looks too bad
             return
 
-        print '#@#', passed_sec, int(float(bias) / comp_band * 28), sn, ct, time_weight, sameband_weight
+        # print '#@#', passed_sec, int(float(bias) / comp_band * 28), sn, ct, time_weight, sameband_weight
         self.add_element(int(float(bias) / comp_band * 28),
             float(sn) / 10 * \
             math.pow(float(ct) / 7.0, 2) * \
@@ -68,7 +66,7 @@ class BiasHistStatistics:
         weight = 0.0
 
         if self.hist == {}:
-            print "LARGE DIST"
+            # Return values as large distribution
             return 0.0, 1.0
 
         for bin in self.hist:
@@ -93,7 +91,7 @@ def biashist(datetime_sec, freq_khz):
     frequency in Hz) and standard deviation.
     """
 
-    from lib.ibp import Station, get_slot, freq_khz_to_mhz
+    from lib.ibp import Station, freq_khz_to_mhz
     from lib.fileio import connect_database
 
     identify = Station().identify_station
@@ -101,7 +99,7 @@ def biashist(datetime_sec, freq_khz):
     # Identify transmitting station by time and band
     timeslot_in_sched, effective_time_sec, station = \
         identify(datetime_sec, freq_khz)
-    print '<<<', timeslot_in_sched, effective_time_sec, station
+    # print '<<<', timeslot_in_sched, effective_time_sec, station
 
     # valid_sec is some days before the datetime_sec
     # Required not to obtain database records which are too old
@@ -145,28 +143,23 @@ def biashist(datetime_sec, freq_khz):
             continue
 
         # Now found a true candidate
-        print '!!!', row, candidate_station
+        # print '!!!', row, candidate_station
         passed_sec = datetime_sec - candidate_datetime
         sn = row[2]
         bias = row[3]
         ct = row[4]
         stat.add_params(passed_sec, freq_khz, candidate_freq_khz, sn, bias, ct)
 
-    print stat.hist
-    print stat.result()
-
-    print "---------------"
+    # print stat.hist
+    return stat.result()
 
 def bayes(datetime_sec, freq_khz, debug=False):
     """
     Bayesian Inference
     """
-    import sys
-
     print '#', datetime_sec, freq_khz
-    biashist(datetime_sec, freq_khz)
+    print biashist(datetime_sec, freq_khz)
 
-    # sys.exit(0)
     return None
 
 def bayes_all(onepass=False, limit=1000, force=False, debug=False):
@@ -186,8 +179,9 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
         if force:
             cond = ''
         else:
-            # XXX
+            # XXX For testing purpose
             # cond = 'WHERE datetime >= 1462762419 AND bayes1_sn IS NULL'
+
             cond = 'WHERE bayes1_sn IS NULL'
 
         c.execute('''SELECT datetime, freq_khz

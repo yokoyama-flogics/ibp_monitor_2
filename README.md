@@ -2,6 +2,8 @@
 
 Thank you for your attention and patience to the Beacon Monitor-2 Project.
 
+**New**: Facebook Page is also available.  https://www.facebook.com/beaconmonitor2/
+
 After the statement on the web site (http://ayoko.net/beacon/) on
 March, 2017, the progress was quite slow until this October.
 

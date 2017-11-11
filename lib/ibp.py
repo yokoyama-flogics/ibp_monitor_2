@@ -164,17 +164,17 @@ class Station:
         import yaml
         yamlfile = BeaconConfigParser().get('Common', 'stations')
         self.stations = yaml.load(open(yamlfile, 'r'))
-    def identify_station(self, datetime_sec, band):
+    def identify_station(self, datetime_sec, freq_khz):
         """
         Identify transmitting station by datetime_sec (seconds from UNIX epoch)
-        and band (14, 18, 21, ...)
+        and received frequency (in kHz).
         """
         from datetime import datetime
 
         latest_effective_sec = -1
         latest_candidate = None
 
-        slot = get_slot(datetime_sec, band)
+        slot = get_slot(datetime_sec, freq_khz_to_mhz(freq_khz))
         # debug  slot = 3 # get_slot(datetime_sec, band) # XXX
 
         for candidate in self.stations[slot]:
@@ -182,7 +182,8 @@ class Station:
                 datetime_to_sec_from_epoch(
                     datetime.strptime(candidate['effective'], '%Y-%m-%d'))
             # print candidate, candidate_effective_sec
-            if candidate_effective_sec > latest_effective_sec:
+            if candidate_effective_sec < datetime_sec and \
+                    candidate_effective_sec > latest_effective_sec:
                 latest_effective_sec = candidate_effective_sec
                 latest_candidate = candidate
                 # print "found", latest_effective_sec

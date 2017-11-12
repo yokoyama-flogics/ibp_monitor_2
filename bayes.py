@@ -55,7 +55,8 @@ class BiasHistStatistics:
             # S/N looks too bad
             return
 
-        # print '#@#', passed_sec, int(float(bias) / comp_band * 28), sn, ct, time_weight, sameband_weight
+        # print '#@#', passed_sec, int(float(bias) / comp_band * 28),
+        #   sn, ct, time_weight, sameband_weight
         self.add_element(int(float(bias) / comp_band * 28),
             float(sn) / 10 * \
             math.pow(float(ct) / 7.0, 2) * \
@@ -67,7 +68,7 @@ class BiasHistStatistics:
 
         if self.hist == {}:
             # Return values as large distribution
-            return 0.0, 1.0
+            return float('nan'), float('nan')
 
         for bin in self.hist:
             sum += bin * self.hist[bin]
@@ -94,11 +95,12 @@ def biashist(datetime_sec, freq_khz):
     from lib.ibp import Station, freq_khz_to_mhz
     from lib.fileio import connect_database
 
-    identify = Station().identify_station
+    if not hasattr(biashist, 'identify'):
+        biashist.identify = Station().identify_station
 
     # Identify transmitting station by time and band
     timeslot_in_sched, effective_time_sec, station = \
-        identify(datetime_sec, freq_khz)
+        biashist.identify(datetime_sec, freq_khz)
     # print '<<<', timeslot_in_sched, effective_time_sec, station
 
     # valid_sec is some days before the datetime_sec
@@ -127,7 +129,7 @@ def biashist(datetime_sec, freq_khz):
         candidate_datetime = row[0]
         candidate_freq_khz = row[1]
         candidate_station = \
-            identify(candidate_datetime, candidate_freq_khz)
+            biashist.identify(candidate_datetime, candidate_freq_khz)
         # print '???', row, candidate_station
 
         # Filter stations.  Listening station and stations on the database
@@ -143,8 +145,8 @@ def biashist(datetime_sec, freq_khz):
             continue
 
         # Now found a true candidate
-        # print '!!!', row, candidate_station
         passed_sec = datetime_sec - candidate_datetime
+        print '!!!', passed_sec, row, candidate_station
         sn = row[2]
         bias = row[3]
         ct = row[4]
@@ -153,12 +155,191 @@ def biashist(datetime_sec, freq_khz):
     # print stat.hist
     return stat.result()
 
-def bayes(datetime_sec, freq_khz, debug=False):
+def stdist2(stddev, x):
+    """
+    I don't remember.  Related to Cumulative distribution function...
+    """
+    if stddev == 0.0:
+        return 0.0      # to avoid division by zero
+
+    ea = abs(x / stddev / pow(2, 0.5))
+
+    if ea < 0.5:
+        return 0.38
+    elif ea < 1.5:
+        return 0.24
+    elif ea < 2.5:
+        return 0.06
+    elif ea < 3.5:
+        return 0.01
+    else:
+        return 0.0
+
+def dist_no(band, stddev, x):
+    """
+    I don't remember...
+    """
+    sq = pow(2, 0.5)
+    s = stddev
+    x = abs(x)
+
+    # print ">>>", x, sq, s, band
+
+    if x < 0.5 * sq * s * band:
+        return 0.5 * sq * s * band / 250.0 * 2    # center has twice
+    elif x < 1.5 * sq * s * band:
+        return (1.5 * sq * s * band) / 250.0 - (0.5 * sq * s * band) / 250.0
+    elif x < 2.5 * sq * s * band:
+        return (2.5 * sq * s * band) / 250.0 - (1.5 * sq * s * band) / 250.0
+    elif x < 3.5 * sq * s * band:
+        return (3.5 * sq * s * band) / 250.0 - (2.5 * sq * s * band) / 250.0
+    else:
+        return (250.0 - (3.5 * sq * s * band)) / 250.0
+
+class BayesInference:
+    def __init__(self):
+        self.ave_sn = 0.325375
+        self.sigma_sn = 3.39476
+
+        self.n_positive = 41
+        self.n_total = 800
+        self.pc = float(self.n_positive) / self.n_total
+
+        C = 1   # correcting value (don't remember the reason)
+
+        self.sn_b = {
+            1: 0 + C,
+            2: 0 + C,
+            3: 0 + C,   # average
+            4: 4,
+            5: 13,
+            6: 17,
+            7: 6,
+            8: 1
+        }
+        self.sn_bt = sum(self.sn_b.values())
+
+        self.sn_n = {
+            1: 0 + C,
+            2: 263,
+            3: 400,     # average
+            4: 71,
+            5: 10,
+            6: 11,
+            7: 3,
+            8: 1
+        }
+        self.sn_nt = sum(self.sn_n.values())
+
+        self.ct_b = {
+            1: 0 + C,
+            2: 2,
+            3: 0 + C,
+            4: 5,
+            5: 5,
+            6: 17,
+            7: 12
+        }
+        self.ct_bt = sum(self.ct_b.values())
+
+        self.ct_n = {
+            1: 597,
+            2: 97,
+            3: 44,
+            4: 11,
+            5: 5,
+            6: 5,
+            7: 0 + C
+        }
+        self.ct_nt = sum(self.ct_n.values())
+
+        # intentionally suppressing to add C
+        self.if_b = {
+            0: 0,
+            1: 0,
+            2: 0,
+            3: 0,
+            4: 0,
+            5: 0,
+            6: 41
+        }
+        self.if_bt = sum(self.if_b.values())
+
+        # intentionally suppressing to add C
+        self.if_n = {
+            0: 20,
+            1: 21,
+            2: 9,
+            3: 5,
+            4: 2,
+            5: 4,
+            6: 698
+        }
+        self.if_nt = sum(self.if_n.values())
+
+    def calc(self, freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz):
+        from lib.ibp import freq_khz_to_mhz
+
+        band = freq_khz_to_mhz(freq_khz)
+
+        # Calculating probability parameters (not well known)
+        if math.isnan(bias_param[0]):
+            off_b = 0.38
+            off_n = 0.01
+        else:
+            ave = bias_param[0]
+            stddev = bias_param[1]
+            off_b = stdist2(stddev, float(bias_hz) / band - ave)
+            off_n = dist_no(float(band), stddev, float(bias_hz) - ave * band)
+            # print "<<<", band, off_n, bias_hz, ave, bias_param
+
+        sn_bin = int((sn - self.ave_sn) / self.sigma_sn + (8 - 1) / 2.0)
+        if sn_bin < 1:
+            sn_bin = 1
+        elif sn_bin > 8:
+            sn_bin = 8
+
+        diff = abs(bias_hz - if_bias_hz)
+        if diff > 6:
+            diff = 6
+
+        pc = self.pc
+
+        sn_b = self.sn_b
+        sn_bt = self.sn_bt
+        sn_n = self.sn_n
+        sn_nt = self.sn_nt
+
+        ct_b = self.ct_b
+        ct_bt = self.ct_bt
+        ct_n = self.ct_n
+        ct_nt = self.ct_nt
+
+        if_b = self.if_b
+        if_bt = self.if_bt
+        if_n = self.if_n
+        if_nt = self.if_nt
+
+        print "@@@", pc, sn_b, sn_bt, ct_b, ct_bt, if_b, diff, if_bt, off_b, off_n
+        # Just copied code from Monitor-1 code
+        r = (pc * sn_b[sn_bin] / sn_bt * ct_b[ct] / ct_bt * if_b[diff] / if_bt * off_b) / \
+                        (pc * sn_b[sn_bin] / sn_bt * ct_b[ct] / ct_bt * if_b[diff] / if_bt * off_b + \
+                        ((1 - pc) * sn_n[sn_bin] / sn_nt * ct_n[ct] / ct_nt * if_n[diff] / if_nt * off_n))
+
+        if r <= 0.0:
+            r = 0.0
+
+        return float(bias_hz) / band, r
+
+def bayes(bayesinf, datetime_sec, freq_khz, sn, bias_hz, ct, if_bias_hz,
+        debug=False):
     """
     Bayesian Inference
     """
-    print '#', datetime_sec, freq_khz
-    print biashist(datetime_sec, freq_khz)
+    print '#', datetime_sec, freq_khz, sn
+    bias_param = biashist(datetime_sec, freq_khz)
+    print bias_param
+    print bayesinf.calc(freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz)
 
     return None
 
@@ -170,6 +351,8 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
     from lib.fileio import connect_database
     import time
 
+    bi = BayesInference()
+
     conn = connect_database()
     while True:
         c = conn.cursor()
@@ -180,11 +363,12 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
             cond = ''
         else:
             # XXX For testing purpose
-            # cond = 'WHERE datetime >= 1462762419 AND bayes1_sn IS NULL'
+            # cond = 'WHERE datetime >= 1510012799 AND bayes1_sn IS NULL'
+            cond = 'WHERE datetime >= 1510015580 AND bayes1_sn IS NULL'
+            # cond = 'WHERE bayes1_sn IS NULL'
 
-            cond = 'WHERE bayes1_sn IS NULL'
-
-        c.execute('''SELECT datetime, freq_khz
+        c.execute('''SELECT datetime, freq_khz, char1_max_sn, char1_best_pos_hz,
+                char1_total_ct, char1_bg_pos_hz
             FROM received
             %s
             ORDER BY datetime
@@ -192,7 +376,8 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
 
         n_rows = 0
         for row in c.fetchall():
-            paramset = bayes(row[0], row[1], debug=debug)
+            paramset = bayes(bi, row[0], row[1], row[2], row[3], row[4], row[5],
+                debug=debug)
             n_rows += 1
             # paramset.updatedb(conn, row[0])
 

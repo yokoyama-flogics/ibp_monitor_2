@@ -329,7 +329,7 @@ class BayesInference:
         if r <= 0.0:
             r = 0.0
 
-        return float(bias_hz) / band, r
+        return r
 
 def bayes(bayesinf, datetime_sec, freq_khz, sn, bias_hz, ct, if_bias_hz,
         debug=False):
@@ -343,14 +343,13 @@ def bayes(bayesinf, datetime_sec, freq_khz, sn, bias_hz, ct, if_bias_hz,
         print '#', datetime_sec, freq_khz, sn
 
     bias_param = biashist(datetime_sec, freq_khz)
-    bias, pprob = \
-        bayesinf.calc(freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz)
+    pprob = bayesinf.calc(freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz)
 
     if debug:
         ts = time.strftime('%H:%M:%S', time.gmtime(datetime_sec))
-        print ts, bias, pprob
+        print ts, pprob
 
-    return None
+    return pprob
 
 def bayes_all(onepass=False, limit=1000, force=False, debug=False):
     """
@@ -372,11 +371,11 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
             cond = ''
         else:
             # XXX For testing purpose
-            # cond = 'WHERE datetime >= 1510012799 AND bayes1_sn IS NULL'
-            # cond = 'WHERE datetime >= 1510015580 AND bayes1_sn IS NULL'
-            # cond = 'WHERE datetime >= 1509494399 AND datetime <= 1509667199 AND bayes1_sn IS NULL'
-            cond = 'WHERE datetime >= 1509580799 AND bayes1_sn IS NULL'
-            # cond = 'WHERE bayes1_sn IS NULL'
+            # cond = 'WHERE datetime >= 1510012799 AND bayes1_prob IS NULL'
+            # cond = 'WHERE datetime >= 1510015580 AND bayes1_prob IS NULL'
+            # cond = 'WHERE datetime >= 1509494399 AND datetime <= 1509667199 AND bayes1_prob IS NULL'
+            cond = 'WHERE datetime >= 1509580799 AND bayes1_prob IS NULL'
+            # cond = 'WHERE bayes1_prob IS NULL'
 
         c.execute('''SELECT datetime, freq_khz, char1_max_sn, char1_best_pos_hz,
                 char1_total_ct, char1_bg_pos_hz
@@ -387,10 +386,17 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
 
         n_rows = 0
         for row in c.fetchall():
-            paramset = bayes(bi, row[0], row[1], row[2], row[3], row[4], row[5],
+            pprob = bayes(bi, row[0], row[1], row[2], row[3], row[4], row[5],
                 debug=debug)
             n_rows += 1
-            # paramset.updatedb(conn, row[0])
+            c.execute('''UPDATE received SET
+                bayes1_prob = ?
+                WHERE datetime = ?''',
+                (
+                    pprob,
+                    row[0]
+                ))
+            conn.commit()
 
         if onepass and n_rows == 0:
             break

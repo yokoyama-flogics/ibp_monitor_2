@@ -146,7 +146,7 @@ def biashist(datetime_sec, freq_khz):
 
         # Now found a true candidate
         passed_sec = datetime_sec - candidate_datetime
-        print '!!!', passed_sec, row, candidate_station
+        # print '!!!', passed_sec, row, candidate_station
         sn = row[2]
         bias = row[3]
         ct = row[4]
@@ -320,7 +320,7 @@ class BayesInference:
         if_n = self.if_n
         if_nt = self.if_nt
 
-        print "@@@", pc, sn_b, sn_bt, ct_b, ct_bt, if_b, diff, if_bt, off_b, off_n
+        # print "@@@", pc, sn_b, sn_bt, ct_b, ct_bt, if_b, diff, if_bt, off_b, off_n
         # Just copied code from Monitor-1 code
         r = (pc * sn_b[sn_bin] / sn_bt * ct_b[ct] / ct_bt * if_b[diff] / if_bt * off_b) / \
                         (pc * sn_b[sn_bin] / sn_bt * ct_b[ct] / ct_bt * if_b[diff] / if_bt * off_b + \
@@ -336,10 +336,19 @@ def bayes(bayesinf, datetime_sec, freq_khz, sn, bias_hz, ct, if_bias_hz,
     """
     Bayesian Inference
     """
-    print '#', datetime_sec, freq_khz, sn
+    if debug:
+        import time
+
+    if debug:
+        print '#', datetime_sec, freq_khz, sn
+
     bias_param = biashist(datetime_sec, freq_khz)
-    print bias_param
-    print bayesinf.calc(freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz)
+    bias, pprob = \
+        bayesinf.calc(freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz)
+
+    if debug:
+        ts = time.strftime('%H:%M:%S', time.gmtime(datetime_sec))
+        print ts, bias, pprob
 
     return None
 
@@ -364,7 +373,9 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
         else:
             # XXX For testing purpose
             # cond = 'WHERE datetime >= 1510012799 AND bayes1_sn IS NULL'
-            cond = 'WHERE datetime >= 1510015580 AND bayes1_sn IS NULL'
+            # cond = 'WHERE datetime >= 1510015580 AND bayes1_sn IS NULL'
+            # cond = 'WHERE datetime >= 1509494399 AND datetime <= 1509667199 AND bayes1_sn IS NULL'
+            cond = 'WHERE datetime >= 1509580799 AND bayes1_sn IS NULL'
             # cond = 'WHERE bayes1_sn IS NULL'
 
         c.execute('''SELECT datetime, freq_khz, char1_max_sn, char1_best_pos_hz,

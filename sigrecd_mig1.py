@@ -56,11 +56,12 @@ def nextday_datestr(datestr):
     nextday = datetime.strptime(datestr, '%Y%m%d') + timedelta(days=1)
     return nextday.strftime('%Y%m%d')
 
-def register_db(datestr, timestr, mhz, debug=False):
+def register_db(datestr, timestr, mhz, ignore_err=False, debug=False):
     from datetime import datetime
     from lib.config import BeaconConfigParser
     from lib.fileio import connect_database
     from lib.ibp import mhz_to_freq_khz
+    from sqlite3 import IntegrityError
 
     # Convert datestr and timestr to seconds from epoch
     datetime_utc = datetime.strptime(
@@ -77,20 +78,28 @@ def register_db(datestr, timestr, mhz, debug=False):
 
     conn = connect_database()
     c = conn.cursor()
-    c.execute('''INSERT INTO
-        received(datetime, offset_ms, freq_khz, bfo_offset_hz, recorder)
-        VALUES(?,?,?,?,?)''',
-        (
-            seconds_from_epoch,
-            config.getint('Migration', 'offset_ms'),
-            mhz_to_freq_khz(mhz),
-            config.getint('Migration', 'bfo_offset_hz'),
-            config.get('Migration', 'recorder')
-        ))
-    conn.commit()
+    try:
+        c.execute('''INSERT INTO
+            received(datetime, offset_ms, freq_khz, bfo_offset_hz, recorder)
+            VALUES(?,?,?,?,?)''',
+            (
+                seconds_from_epoch,
+                config.getint('Migration', 'offset_ms'),
+                mhz_to_freq_khz(mhz),
+                config.getint('Migration', 'bfo_offset_hz'),
+                config.get('Migration', 'recorder')
+            ))
+        conn.commit()
+    except IntegrityError as err:
+        if ignore_err and \
+                err[0] == 'UNIQUE constraint failed: received.datetime':
+            pass
+        else:
+            raise
+
     conn.close()
 
-def startrec(arg_from, debug=False):
+def startrec(arg_from, ignore_err=False, debug=False):
     """
     Repeat signal conversion from 'arg_from'.
     If arg_from is 'new', it start from new line of today's file.
@@ -185,7 +194,7 @@ def startrec(arg_from, debug=False):
 
         # Finally process the line
         record_one_file(datestr, timestr, curline, debug)
-        register_db(datestr, timestr, mhz, debug=debug)
+        register_db(datestr, timestr, mhz, ignore_err, debug=debug)
 
 def main():
     import argparse
@@ -199,6 +208,10 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('--force',
+        action='store_true',
+        default=False,
+        help='ignore error when record already exists in database')
     parser.add_argument('-f', '--from',
         # required=True,
         help='process from "new" (default), or datestr (e.g. 20171028)')
@@ -221,7 +234,7 @@ def main():
             eprint("Illegal datestr '%s' specified" % (args.arg_from))
             sys.exit(1)
 
-    startrec(args.arg_from, debug=args.debug)
+    startrec(args.arg_from, ignore_err=args.force, debug=args.debug)
 
 if __name__ == "__main__":
     main()

@@ -18,17 +18,6 @@ SCHEMA_RECEIVED = \
         PRIMARY KEY(`datetime`)
 )'''
 
-# SCHEMA_BIASHIST = \
-# '''CREATE TABLE `biashist` (
-#         `datetime`              INTEGER UNIQUE,
-#         `band`                  INTEGER,
-#         `recorder`              TEXT,
-#         `sn`                    REAL,
-#         `bias_hz`               INTEGER,
-#         `ct`                    INTEGER,
-#         PRIMARY KEY(`datetime`)
-# )'''
-
 from lib.common import eprint
 from lib.fileio import connect_database
 

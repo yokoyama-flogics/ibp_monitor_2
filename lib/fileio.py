@@ -3,9 +3,9 @@ File Handlers
 """
 
 from lib.config import BeaconConfigParser
+import os
 
 def mkdir_if_required(filename):
-    import os
     dirname = os.path.dirname(filename)
     if dirname != '':
         try:
@@ -15,9 +15,7 @@ def mkdir_if_required(filename):
                 raise
 
 def open_db_file(name, mode=None):
-    import os
-
-    dbdir = BeaconConfigParser().get('Migration', 'dbdir')
+    dbdir = os.path.expanduser(BeaconConfigParser().get('Migration', 'dbdir'))
     return open(os.path.join(dbdir, name), mode)
 
 def connect_database():
@@ -30,9 +28,7 @@ def getpath_signalfile(filename):
     """
     Return the actual path name of signal file by given filename
     """
-    import os
-
-    sigdir = BeaconConfigParser().get('Signal', 'dir')
+    sigdir = os.path.expanduser(BeaconConfigParser().get('Signal', 'dir'))
     return os.path.join(sigdir, filename)
 
 def main():

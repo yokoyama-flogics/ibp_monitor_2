@@ -1,4 +1,11 @@
 import gd
+import os
+import sys
+
+# Set Python search path to the parent directory
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from lib.common import eprint
 
 lborder = 9
 rborder = 31
@@ -229,6 +236,66 @@ def old_main():
         f.close()
         fimg.close()
 
+def gen_graph(datestr, outfile_name, debug=False):
+    from datetime import datetime, timedelta
+    from lib.fileio import connect_database
+    from lib.ibp import freq_khz_to_mhz, get_slot
+
+    im = gd.image((lborder + rborder + cwidth * 96 - 1, \
+        tborder + bborder + 18 * (cheight * 5 + sskip) - sskip))
+    colidx = {}
+    iminit(im, colidx)
+
+    conn = connect_database()
+    c = conn.cursor()
+
+    def datetime_to_sec(t):
+        return int((t - datetime.utcfromtimestamp(0)).total_seconds())
+
+    timefrom = datetime.strptime(datestr, '%Y%m%d')
+    timeto   = timefrom + timedelta(days=1) - timedelta(seconds=10)
+
+    if debug:
+        print timefrom, timeto
+        print datetime_to_sec(timefrom), datetime_to_sec(timeto)
+
+    c.execute('''SELECT datetime, freq_khz, char1_max_sn, char1_best_pos_hz,
+            bayes1_prob
+        FROM received
+        WHERE datetime >= ? AND datetime <= ? AND bayes1_prob IS NOT NULL''',
+        (datetime_to_sec(timefrom), datetime_to_sec(timeto)))
+
+    for row in c.fetchall():
+        if debug:
+            print row
+
+        tindex = (row[0] % (3600 * 24)) / (15 * 60)
+        bindex = {
+            14100: 4,
+            18110: 3,
+            21150: 2,
+            24930: 1,
+            28200: 0
+        }[row[1]]
+
+        band = freq_khz_to_mhz(row[1])
+        sindex = get_slot(row[0], band)
+        sn = row[2]
+        bias = float(row[3]) / band
+        pp = row[4]
+
+        found = (pp >= 0.5)
+        if found:
+                # print "found", pp
+                imputmark(im, tindex, bindex, sindex, colidx[
+                        getindex(sn, pp, bias)])
+        else:
+                imputmark(im, tindex, bindex, sindex, nosig)
+
+    fimg = open(outfile_name, "wb")
+    im.writePng(fimg)
+    fimg.close()
+
 def main():
     import argparse
     import re
@@ -241,9 +308,19 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('-o', '--output',
+        required=True,
+        help='output file name (PNG graphic)')
+    parser.add_argument('datestr',
+        help='datestr (e.g. 20171028)')
     args = parser.parse_args()
 
-    gen_graph(debug=args.debug)
+    m = re.match(r'[0-9]{8}$', args.datestr)
+    if not m:
+        eprint("Illegal datestr '%s' specified" % (args.datestr))
+        sys.exit(1)
+
+    gen_graph(datestr=args.datestr, outfile_name=args.output, debug=args.debug)
 
 if __name__ == "__main__":
     main()

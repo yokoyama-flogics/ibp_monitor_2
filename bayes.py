@@ -365,17 +365,15 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
     while True:
         c = conn.cursor()
 
+        cond = 'WHERE char1_max_sn IS NOT NULL'
+
         # If specified 'force', even the record has characteristics parameters,
         # fetch any records for update.
-        if force:
-            cond = ''
-        else:
-            # XXX For testing purpose
-            # cond = 'WHERE datetime >= 1510012799 AND bayes1_prob IS NULL'
-            # cond = 'WHERE datetime >= 1510015580 AND bayes1_prob IS NULL'
-            # cond = 'WHERE datetime >= 1509494399 AND datetime <= 1509667199 AND bayes1_prob IS NULL'
-            cond = 'WHERE datetime >= 1509580799 AND bayes1_prob IS NULL'
-            # cond = 'WHERE bayes1_prob IS NULL'
+        if not force:
+            cond += '\nAND bayes1_prob IS NULL'
+
+        # XXX For testing purpose
+        # cond += '\nAND datetime >= 1509580799'
 
         c.execute('''SELECT datetime, freq_khz, char1_max_sn, char1_best_pos_hz,
                 char1_total_ct, char1_bg_pos_hz

@@ -21,7 +21,7 @@ def exceeded_sigfiles_limit():
 
     ct = 0
     for root, dirs, files in \
-            os.walk(BeaconConfigParser().get('Signal', 'dir')):
+            os.walk(BeaconConfigParser().getpath('Signal', 'dir')):
         for f in files:
             if prog.search(f):
                 ct += 1

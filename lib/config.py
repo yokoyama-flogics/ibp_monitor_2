@@ -18,3 +18,6 @@ class BeaconConfigParser():
 
     def getint(self, section, name):
         return self.config.getint(section, name)
+
+    def getpath(self, section, name):
+        return os.path.expanduser(self.config.get(section, name))

@@ -10,7 +10,7 @@ class TestLibConfig(unittest.TestCase):
     def test_config_noconfigfile(self):
         config = BeaconConfigParser('not_exist.cfg')
         with self.assertRaises(ConfigParser.NoSectionError):
-            config.get('Test', 'dbdir')
+            config.getpath('Test', 'dbdir')
 
     def test_config_default(self):
         import os
@@ -21,7 +21,7 @@ class TestLibConfig(unittest.TestCase):
 
     def test_config_items(self):
         config = BeaconConfigParser('test_config.cfg')
-        self.assertEqual(config.get('Test', 'dbdir'), 'nodb')
+        self.assertEqual(config.getpath('Test', 'dbdir'), 'nodb')
         self.assertEqual(config.getint('Signal', 'samplerate'), 16000)
 
 if __name__ == "__main__":

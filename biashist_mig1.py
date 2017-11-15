@@ -101,7 +101,7 @@ def biashist_mig_all(ignore_err=False, debug=False):
     from fnmatch import fnmatch
     import os
 
-    dbdir = BeaconConfigParser().get('Migration', 'dbdir')
+    dbdir = BeaconConfigParser().getpath('Migration', 'dbdir')
     recorder = BeaconConfigParser().get('Migration', 'recorder')
     offset_ms = BeaconConfigParser().getint('Migration', 'offset_ms')
     bfo_offset_hz = \

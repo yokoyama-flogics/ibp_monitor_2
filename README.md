@@ -19,7 +19,7 @@ Bash.
 
 # Current Status
 
-The following shows the current progress.  (As of Nov. 11, 2017)
+The following shows the current progress.  (As of Nov. 15, 2017)
 
 ![Current Progress Diagram](./doc/diagram.png)
 
@@ -30,19 +30,25 @@ The following shows the current progress.  (As of Nov. 11, 2017)
 - Migration software, which converts the output of Signal Recorder,
   was almost written by Nov. 3.
 
-- Database engine (using SQLite3) was almost done as of today.
+- Database engine (using SQLite3) was done as of today.
 
-- Signal Characteristics Extractor was almost written by Nov. 6.
+- Signal Characteristics Extractor was written by Nov. 6.
 
-- Station Frequency Deviation Tracker was almost written by Nov. 10.
+- Station Frequency Deviation Tracker was written by Nov. 10.
+
+- Bayesian Inference Program was completed by Nov. 13.
+
+- Bar Graph Visualizer was written by Nov. 15.
 
 - Remaining code which I need to complete are,
 
-    - Bayesian Inference code
-	- Bar Graph Visualizer
 	- Map Visualizer (may be postponed?)
 	- Twitter bot (may be postponed?)
-	
+	- Signal Files Cleaner
+
+Now I'm also investigating if I can quickly write Signal Recorder by
+Python and ALSA library.
+
 I guess, if I won't face any business problems, the above code will be
 completed by end of this November or December.
 

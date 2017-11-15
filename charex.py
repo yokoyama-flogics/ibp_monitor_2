@@ -304,7 +304,7 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
     return character1(max_sn, bin_to_freq(best_pos), total_ct,
         bin_to_freq(bg_pos), bg_sn)
 
-def charex_all(onepass=False, force=False, debug=False):
+def charex_all(onepass=False, force=False, dryrun=False, debug=False):
     """
     Retrieve any record in the database, which doesn't have calculated
     characteristics by this charex.py yet, and pass them to charex()
@@ -329,9 +329,20 @@ def charex_all(onepass=False, force=False, debug=False):
             ORDER BY datetime''' % (cond))
 
         for row in c.fetchall():
-            sigdata, samplerate = read_sigdata(datetime_sec=row[0])
-            paramset = charex(sigdata, samplerate, row[1], row[2], debug=debug)
-            paramset.updatedb(conn, row[0])
+            try:
+                sigdata, samplerate = read_sigdata(datetime_sec=row[0])
+                paramset = charex(
+                    sigdata, samplerate, row[1], row[2], debug=debug)
+                if not dryrun:
+                    paramset.updatedb(conn, row[0])
+
+            except IOError as err:
+                if err[1] == 'No such file or directory':
+                    if debug:
+                        pass
+                        # eprint('Signal file not found.  Skipped')
+                else:
+                    raise
 
         if onepass:
             break
@@ -359,6 +370,10 @@ def main():
         action='store_true',
         default=False,
         help='update database even they already have characteristics')
+    parser.add_argument('--dryrun',
+        action='store_true',
+        default=False,
+        help='does not touch database')
     parser.add_argument('-q', '--quit',
         action='store_true',
         default=False,
@@ -369,7 +384,8 @@ def main():
         help='run as daemon.  start, stop, or restart')
     args = parser.parse_args()
 
-    charex_all(onepass=args.quit, force=args.force, debug=args.debug)
+    charex_all(onepass=args.quit, force=args.force, dryrun=args.dryrun,
+        debug=args.debug)
 
 if __name__ == "__main__":
     main()

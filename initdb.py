@@ -29,7 +29,7 @@ def init_db(destroy='no', preserve=False, debug=False):
 
     if not preserve:
         try:
-            os.remove(BeaconConfigParser().get('Common', 'database'))
+            os.remove(BeaconConfigParser().getpath('Common', 'database'))
         except OSError as err:
             if err[1] != 'No such file or directory':
                 raise

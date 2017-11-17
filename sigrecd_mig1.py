@@ -238,7 +238,7 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
         status2 = register_db(datestr, timestr, mhz, ignore_err, debug=debug)
 
         # If some processes were required, show the progress
-        if status1 and status2:
+        if status1 or status2:
             print line
 
 def task():

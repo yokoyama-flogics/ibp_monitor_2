@@ -354,6 +354,12 @@ def charex_all(onepass=False, force=False, dryrun=False, debug=False):
 
     conn.close()
 
+def task():
+    """
+    Entry point for Task Keeper
+    """
+    charex_all(onepass=False, force=False, dryrun=False, debug=False)
+
 def main():
     import argparse
     import re

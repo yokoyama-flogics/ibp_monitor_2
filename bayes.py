@@ -406,6 +406,12 @@ def bayes_all(onepass=False, limit=1000, force=False, debug=False):
 
     conn.close()
 
+def task():
+    """
+    Entry point for Task Keeper
+    """
+    bayes_all(onepass=False, limit=1000, force=False, debug=False)
+
 def main():
     import argparse
     import re

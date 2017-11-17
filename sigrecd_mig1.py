@@ -241,6 +241,12 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
         if status1 and status2:
             print line
 
+def task():
+    """
+    Entry point for Task Keeper
+    """
+    startrec(arg_from='today', ignore_err=True, check_limit=False, debug=False)
+
 def main():
     import argparse
     import re

@@ -36,6 +36,11 @@ def keep_task(func, name, sleep_sec=1):
 
         sleep(sleep_sec)
 
+def spinning_cursor():
+    while True:
+        for cursor in '|/-\\':
+            yield cursor
+
 def task_keeper(debug=False):
     """
     Run all tasks listed in the config file and monitor them
@@ -43,6 +48,7 @@ def task_keeper(debug=False):
     from lib.config import BeaconConfigParser
     from multiprocessing import Process
     from time import sleep
+    import sys
 
     logging.basicConfig(
         filename=BeaconConfigParser().getpath('TaskKeeper', 'logfile'))
@@ -58,8 +64,12 @@ def task_keeper(debug=False):
         proc[task].start()
 
     try:
+        spinner = spinning_cursor()
         while True:
-            sleep(1)
+            sys.stdout.write(spinner.next())
+            sys.stdout.write('\b')
+            sys.stdout.flush()
+            sleep(0.25)
 
     except KeyboardInterrupt:
         eprint('Interrupted by user.  Aborted.')

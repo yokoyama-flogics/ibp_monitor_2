@@ -5,17 +5,31 @@ Signal Recorder Daemon for Migration from IBP Monitor-1
 import os
 import sys
 
+LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal
+
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
 
-def exceeded_sigfiles_limit():
+def exceeded_sigfiles_limit(n_cache=10):    # XXX
     """
     Check if too many signal files are generated and return True if so.
     """
     from lib.config import BeaconConfigParser
     import re
+
+    # Calculating disk usage very often, is heavy job.
+    # So skip usually and use cached value.
+    if not hasattr(exceeded_sigfiles_limit, 'n_cache'):
+        exceeded_sigfiles_limit.n_cache = n_cache
+
+    if hasattr(exceeded_sigfiles_limit, 'cached_judge') and \
+            exceeded_sigfiles_limit.n_cache > 0:
+        exceeded_sigfiles_limit.n_cache -= 1
+        print 'CACHE @@@', exceeded_sigfiles_limit.n_cache
+        print exceeded_sigfiles_limit.cached_judge
+        return exceeded_sigfiles_limit.cached_judge
 
     prog = re.compile(r'\.wav$')
 
@@ -26,25 +40,47 @@ def exceeded_sigfiles_limit():
             if prog.search(f):
                 ct += 1
 
-    if ct >= BeaconConfigParser().getint(
-            'SignalRecorder', 'sigfiles_num_limit'):
-        return True
-    else:
-        return False
+    print 'CACHE calc'
+    exceeded_sigfiles_limit.cached_judge = \
+        ct >= \
+        BeaconConfigParser().getint('SignalRecorder', 'sigfiles_num_limit')
 
-def record_one_file(datestr, timestr, line, debug=False):
+    exceeded_sigfiles_limit.n_cache = n_cache 
+
+    print exceeded_sigfiles_limit.cached_judge
+    return exceeded_sigfiles_limit.cached_judge
+
+def record_one_file(datestr, timestr, line, skip_if_exist=False, debug=False):
     """
     Record (or 'convert' in the migration recorder case) one file from
     the raw file specified by 'datestr' and 'line' in the file.
     Note that the 'line' is true line number of the file.  Comment line is also
     counted.
     """
+    from lib.config import BeaconConfigParser
+    from lib.fileio import getpath_signalfile
     from sigretr import retrieve_signal, write_wav_file, adjust_len
+    import os
+    import wave
+
+    if not hasattr(record_one_file, 'n_samples'):
+        record_one_file.n_samples = \
+            LEN_INPUT_SEC * BeaconConfigParser().getint('Signal', 'samplerate')
+
+    filename = datestr + '/' + timestr + '.wav'
+    filepath = getpath_signalfile(datestr + '/' + timestr + '.wav')
+    print filepath, wave.open(filepath, 'rb').getnframes()
+
+    # If the signal file exists and can be ignored, skip file retrieval
+    if skip_if_exist and \
+        wave.open(filepath, 'rb').getnframes() == record_one_file.n_samples:
+            print "SKIP"
+            return
 
     # Read signal data from raw file, and write it as .wav file
     sig = retrieve_signal(datestr, line, debug=False)
     sig = adjust_len(sig)
-    write_wav_file(datestr + '/' + timestr + '.wav', sig, to_signal_dir=True)
+    write_wav_file(filename, sig, to_signal_dir=True)
 
 def nextday_datestr(datestr):
     """
@@ -122,6 +158,7 @@ def startrec(arg_from, ignore_err=False, debug=False):
     curline = 0     # will be initialized in the loop below in anyway
 
     while True:
+        print "1"
         # For first iteration or curfd is closed, open a new file
         if curfd is None:
             curfd = open_db_file('ibprec_%s.txt' % (datestr), 'r')
@@ -140,6 +177,7 @@ def startrec(arg_from, ignore_err=False, debug=False):
                 if debug:
                     print "#", line.rstrip()    # skipped line
 
+        print "2"
         # Now, wait for a line from curfd
         while True:
             line = curfd.readline()
@@ -158,6 +196,7 @@ def startrec(arg_from, ignore_err=False, debug=False):
                 print "COMMENT:", line
             continue
 
+        print "3"
         # Check if the line is an end-of-file marker
         m = re.search(r'MHz\s*$', line)
         if not m:
@@ -177,6 +216,7 @@ def startrec(arg_from, ignore_err=False, debug=False):
         # utctime = datetime.utcfromtimestamp(
         #     math.floor((float(m.group(0)) + 6.0) / 10.0) * 10.0)
 
+        print "4"
         # Extract time time string from the line, and convert to %H%M%S.
         m = re.search(r' (\d{2}):(\d{2}):(\d{2}) ', line)
         timestr = m.group(1) + m.group(2) + m.group(3)
@@ -185,15 +225,19 @@ def startrec(arg_from, ignore_err=False, debug=False):
         m = re.search(r' (\d+)MHz\s*$', line)
         mhz = int(m.group(1))
 
+        print "5"
         # Check if generated signal files are too much
         if exceeded_sigfiles_limit():
             eprint("Signal files limit (number of size) is exceeded.")
             eprint("Waiting until not meeting the condition again.")
+        print "5.5"
         while exceeded_sigfiles_limit():
+            print "TRUE"
             time.sleep(0.5)
 
+        print "6"
         # Finally process the line
-        record_one_file(datestr, timestr, curline, debug)
+        record_one_file(datestr, timestr, curline, ignore_err, debug)
         register_db(datestr, timestr, mhz, ignore_err, debug=debug)
 
 def main():
@@ -211,7 +255,8 @@ def main():
     parser.add_argument('--force',
         action='store_true',
         default=False,
-        help='ignore error when record already exists in database')
+        help='ignore error even record and signal files already exist in' +
+            ' database or directory')
     parser.add_argument('-f', '--from',
         # required=True,
         help='process from "new" (default), or datestr (e.g. 20171028)')

@@ -1,5 +1,5 @@
 """
-Signal Recorder Daemon for Migration from IBP Monitor-1
+Signal Recorder for Migration from IBP Monitor-1
 """
 
 import os
@@ -254,7 +254,7 @@ def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser(
-        description='Signal Recorder Daemon for Migration from IBP Monitor-1')
+        description='Signal Recorder for Migration from IBP Monitor-1')
     parser.add_argument('-d', '--debug',
         action='store_true',
         default=False,
@@ -272,10 +272,6 @@ def main():
         # required=True,
         help='process from "new" (default), "today" (00:00:00 in UTC),'
             ' or datestr (e.g. 20171028)')
-    parser.add_argument('--daemon',
-        # nargs=1,
-        choices=['start', 'stop', 'restart'],
-        help='run as daemon.  start, stop, or restart')
     args = parser.parse_args()
 
     args.arg_from = getattr(args, 'from')

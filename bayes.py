@@ -432,10 +432,6 @@ def main():
         action='store_true',
         default=False,
         help='quit after one-pass')
-    parser.add_argument('--daemon',
-        # nargs=1,
-        choices=['start', 'stop', 'restart'],
-        help='run as daemon.  start, stop, or restart')
     args = parser.parse_args()
 
     bayes_all(onepass=args.quit, limit=1000, force=args.force, debug=args.debug)

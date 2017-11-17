@@ -143,6 +143,9 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
     if arg_from == 'new':
         datestr = datetime.utcnow().strftime('%Y%m%d')
         seek_to_tail = True
+    elif arg_from == 'today':
+        datestr = datetime.utcnow().strftime('%Y%m%d')
+        seek_to_tail = False
     else:
         datestr = arg_from
         seek_to_tail = False
@@ -249,7 +252,8 @@ def main():
             ' database or directory')
     parser.add_argument('-f', '--from',
         # required=True,
-        help='process from "new" (default), or datestr (e.g. 20171028)')
+        help='process from "new" (default), "today" (00:00:00 in UTC),'
+            ' or datestr (e.g. 20171028)')
     parser.add_argument('--daemon',
         # nargs=1,
         choices=['start', 'stop', 'restart'],
@@ -260,6 +264,8 @@ def main():
 
     # Check arguments
     if args.arg_from == 'new':
+        pass
+    elif args.arg_from == 'today':
         pass
     elif args.arg_from is None:
         args.arg_from = 'new'

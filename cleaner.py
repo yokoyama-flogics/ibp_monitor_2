@@ -86,7 +86,11 @@ def task():
     """
     Entry point for Task Keeper
     """
-    cleanup(debug=False)
+    import time
+
+    while True:
+        cleanup(debug=False)
+        time.sleep(60)
 
 def main():
     import argparse

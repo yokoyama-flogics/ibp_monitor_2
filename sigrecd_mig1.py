@@ -39,7 +39,8 @@ def record_one_file(datestr, timestr, line, skip_if_exist=False, debug=False):
     Record (or 'convert' in the migration recorder case) one file from
     the raw file specified by 'datestr' and 'line' in the file.
     Note that the 'line' is true line number of the file.  Comment line is also
-    counted.
+    counted.  And return True.
+    Return false if signal file already existed.
     """
     from lib.config import BeaconConfigParser
     from lib.fileio import getpath_signalfile
@@ -53,14 +54,13 @@ def record_one_file(datestr, timestr, line, skip_if_exist=False, debug=False):
 
     filename = datestr + '/' + timestr + '.wav'
     filepath = getpath_signalfile(datestr + '/' + timestr + '.wav')
-    # print filepath
 
     # If the signal file exists and can be ignored, skip file retrieval
     try:
         if skip_if_exist and \
                 wave.open(filepath, 'rb').getnframes() == \
                 record_one_file.n_samples:
-            return
+            return False
     except IOError as err:
         if err[1] == 'No such file or directory':
             # File does not exist...
@@ -75,6 +75,8 @@ def record_one_file(datestr, timestr, line, skip_if_exist=False, debug=False):
     sig = adjust_len(sig)
     write_wav_file(filename, sig, to_signal_dir=True)
 
+    return True
+
 def nextday_datestr(datestr):
     """
     Return the next day's datestr of the given datestr.
@@ -86,6 +88,10 @@ def nextday_datestr(datestr):
     return nextday.strftime('%Y%m%d')
 
 def register_db(datestr, timestr, mhz, ignore_err=False, debug=False):
+    """
+    Register record information to database and return True.
+    Return false if a duplicate record was found.
+    """
     from datetime import datetime
     from lib.config import BeaconConfigParser
     from lib.fileio import connect_database
@@ -107,6 +113,8 @@ def register_db(datestr, timestr, mhz, ignore_err=False, debug=False):
 
     conn = connect_database()
     c = conn.cursor()
+
+    err_occurred = False
     try:
         c.execute('''INSERT INTO
             received(datetime, offset_ms, freq_khz, bfo_offset_hz, recorder)
@@ -122,11 +130,12 @@ def register_db(datestr, timestr, mhz, ignore_err=False, debug=False):
     except IntegrityError as err:
         if ignore_err and \
                 err[0] == 'UNIQUE constraint failed: received.datetime':
-            pass
+            err_occurred = True
         else:
             raise
 
     conn.close()
+    return not err_occurred
 
 def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
     """
@@ -163,14 +172,16 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
         # current last line, so skip already existing lines.
         if seek_to_tail == True:
             seek_to_tail = False    # never seek again
+
+            if debug:
+                print "Skipping to tail of the file..."
+
             while True:
                 line = curfd.readline()
                 if line == '':
                     break       # no more lines
 
                 curline += 1
-                if debug:
-                    print "#", line.rstrip()    # skipped line
 
         # Now, wait for a line from curfd
         while True:
@@ -201,9 +212,6 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
             datestr = nextday_datestr(datestr)
             continue
 
-        if debug:
-            print "%4d: %s" % (curline, line)
-
         # This is not required.  %H:%M:%S is included in the line...
         # m = re.match(r'\d+', line)
         # utctime = datetime.utcfromtimestamp(
@@ -226,8 +234,12 @@ def startrec(arg_from, ignore_err=False, check_limit=False, debug=False):
                 time.sleep(0.5)
 
         # Finally process the line
-        record_one_file(datestr, timestr, curline, ignore_err, debug)
-        register_db(datestr, timestr, mhz, ignore_err, debug=debug)
+        status1 = record_one_file(datestr, timestr, curline, ignore_err, debug)
+        status2 = register_db(datestr, timestr, mhz, ignore_err, debug=debug)
+
+        # If some processes were required, show the progress
+        if status1 and status2:
+            print line
 
 def main():
     import argparse

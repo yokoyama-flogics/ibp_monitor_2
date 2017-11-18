@@ -32,8 +32,9 @@ def get_version():
     return major, minor
 
 def softrock(debug=False):
-    print get_version()
-    print get_version()
+    if debug:
+        ver = get_version()
+        print 'Attached SoftRock firmware is version %d.%d' % ver
 
 def main():
     import argparse

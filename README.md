@@ -21,18 +21,14 @@ Bash.
 
 # Current Status
 
-The following shows the current progress.  (As of Nov. 15, 2017)
+The following shows the current progress.  (As of Nov. 18, 2017)
 
 ![Current Progress Diagram](./doc/diagram.png)
 
-- Decided to reuse the Signal Recorder until the entire system will be
-  rewritten by Python.  However, I guess I can provide the Signal
-  Recorder as a binary form for a while.
-
 - Migration software, which converts the output of Signal Recorder,
-  was almost written by Nov. 3.
+  was written by Nov. 3.
 
-- Database engine (using SQLite3) was done as of today.
+- Database engine (using SQLite3) was done as of Nov. 10.
 
 - Signal Characteristics Extractor was written by Nov. 6.
 
@@ -42,14 +38,17 @@ The following shows the current progress.  (As of Nov. 15, 2017)
 
 - Bar Graph Visualizer was written by Nov. 15.
 
+- Signal Cleaner was done by Nov. 17.
+
+- Task Keeper to run the above parts continuously, by Nov. 17.
+
+- Now coding Signal Recorder for SoftRock + PCM2980 USB CODEC adapter,
+  by ALSA library.
+
 - Remaining code which I need to complete are,
 
 	- Map Visualizer (may be postponed?)
 	- Twitter bot (may be postponed?)
-	- Signal Files Cleaner
-
-Now I'm also investigating if I can quickly write Signal Recorder by
-Python and ALSA library.
 
 I guess, if I won't face any business problems, the above code will be
 completed by end of this November or December.

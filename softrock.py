@@ -4,6 +4,7 @@ SoftRock Controller
 
 VENDOR_ID = 0x16c0
 PRODUCT_ID = 0x05dc
+TIMEOUT = 500
 
 import usb1
 import os
@@ -23,42 +24,132 @@ def softrock_handle():
         VENDOR_ID, PRODUCT_ID, skip_on_error=True)
 
 def get_version():
-    # Refer https://pe0fko.nl/SR-V9-Si570/
-    version = softrock_handle().controlRead(
-        usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_IN,
-        0,
-        0xe00,
-        0,
-        2)
+    # Check if version information is already cached
+    if not hasattr(get_version, 'version'):
+        try:
+            # Refer https://pe0fko.nl/SR-V9-Si570/
+            get_version.version = softrock_handle().controlRead(
+                usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_IN,
+                0,
+                0xe00,
+                0,
+                2,
+                TIMEOUT)
+        except:
+            eprint('ERROR: Confirm SoftRock is attached to a USB port and also'
+                ' you have a privilege\n       to access the USB port.')
+            sys.exit(1)
 
     # Notice that bytes are swapped
-    major = version[1]
-    minor = version[0]
+    major = get_version.version[1]
+    minor = get_version.version[0]
     return major, minor
 
-def set_freq(freq_hz, debug=False):
+def initialize(debug=False):
+    """
+    If SoftRock firmware is 14.0, some historical procedure is carried out.
+    Because specification is unknown, I don't know (or forgot) if this is
+    still required.  Served for historical reason.
+    """
+    if get_version()[0] >= 15:
+        return
+
+    if debug:
+        print "Initializing SoftRock because this formware version is too old."
+
+    handle = softrock_handle()
+
+    handle.controlRead(
+        usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_IN,
+        0,
+        0x1234,
+        0x5678,
+        8,
+        1000)
+
+    handle.controlRead(
+        usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_IN,
+        1,
+        0x30,
+        0,
+        8,
+        1000)
+
+def set_freq(freq_hz, dryrun=False, debug=False):
     """
     Set SoftRock to the specified freq_hz
     If attached SoftRock has old firmware, we need special cares.
     """
+    from lib.config import BeaconConfigParser
+    import math
+    bytes = [0, 0, 0, 0]
+
+    if get_version()[0] < 15:
+        # This came from the Monitor-1 code.  I don't know why this calculation
+        # is required because firmware 14.0 documentation is missing.
+        CALIB = 2.0962539700083447          # 2013-09-16 27.9 deg
+        v = float(freq_hz)
+        v *= CALIB
+        v *= 4                              # Firmware 14.0 requires this
+        ival = int(math.floor(v + 0.5))
+
+    else:
+        calib = eval(
+            BeaconConfigParser().get('SignalRecorder', 'calib_softrock'))
+        if debug:
+            print 'calib = %f' % (calib)
+
+        freq_hz *= (1.0 + calib)
+        ival = int(freq_hz / 1e6 * (1 << 21) + 0.5)
+
+    if debug:
+        print 'ival = %d' % (ival)
+
+    bytes[0] = ival         & 0xff
+    bytes[1] = (ival >> 8)  & 0xff
+    bytes[2] = (ival >> 16) & 0xff
+    bytes[3] = (ival >> 24) & 0xff
+
+    if debug:
+        print 'bytes =', bytes
+
+    if not dryrun:
+        softrock_handle().controlWrite(
+            usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_OUT,
+            0x32,
+            0,
+            0,
+            bytes,
+            TIMEOUT)
+
     if get_version()[0] < 15:
         # This version may not have BPF automatic setting.
         if debug:
             print 'This SoftRock may not have BPF automatic setting.'
             print 'Using a manual way.'
 
-def softrock(debug=False):
-    try:
-        ver = get_version()
-    except:
-        eprint('ERROR: Confirm SoftRock is attached to a USB port and also you'
-            ' have a privilege\n       to access the USB port.')
-        sys.exit(1)
+        if freq_hz < 4000000:
+            bpf = 0
+        elif freq_hz < 8000000:
+            bpf = 1
+        elif freq_hz < 16000000:
+            bpf = 2
+        else:
+            bpf = 3
 
-    if debug:
-        print 'Attached SoftRock firmware is version %d.%d' % ver
+        if debug:
+            print 'bpf = %d' % (bpf)
 
-    set_freq(100000, debug)
+        # This came from the Monitor-1 code.
+        bytes = [0] * 8
+        if not dryrun:
+            softrock_handle().controlWrite(
+                usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_IN,
+                4,
+                (bpf & 0x3) << 4,
+                0,
+                bytes,
+                1000)
 
 def main():
     import argparse
@@ -72,9 +163,19 @@ def main():
         action='store_true',
         default=False,
         help='enable debug')
+    parser.add_argument('--dryrun',
+        action='store_true',
+        default=False,
+        help='dry-run')
+    parser.add_argument('freq',
+        help='frequency in Hz')
     args = parser.parse_args()
 
-    softrock(debug=args.debug)
+    if args.debug:
+        print 'Attached SoftRock firmware is version %d.%d' % get_version()
+
+    initialize(debug=args.debug)
+    set_freq(int(args.freq), dryrun=args.dryrun, debug=args.debug)
 
 if __name__ == "__main__":
     main()

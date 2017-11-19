@@ -2,10 +2,14 @@
 Signal Recorder for SoftRock + ALSA Audio
 """
 
+OFFSET_MS = -1000
+FREQ_CHANGE_TIMING = (10000 - 1200) / 100
+FILE_CHANGE_TIMING = (10000 + OFFSET_MS) / 100
+
 import os
 import sys
 
-LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal
+LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal   XXX
 
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -241,21 +245,152 @@ def old_startrec(check_limit=False, debug=False):   # XXX
         if status1 or status2:
             print line
 
+def sec_x10(time):
+    """
+    sec_x10 returns value from 0 to 99.
+    0.0 sec corresponds to 0.
+    3.4 sec corresponds to 34, and so on.
+    51.2 sec corresponds to 12 (not 512), and so on.
+    """
+    return (time.second % 10) * 10 + time.microsecond / 100000
+
+def calc_pos(samplerate, n_samples, last_time, cur_time):
+    """
+    Calculate sample position correspond to the OFFSET_MS
+    """
+    # len_time = (cur_time.second % 10) + cur_time.microsecond / 1e6 \
+    #         - OFFSET_MS / 1000
+    len_time = (cur_time - last_time).total_seconds()
+    truerate = n_samples / len_time
+    print cur_time, len_time, samplerate, n_samples, truerate
+    print last_time
+    print last_time.microsecond / 1e3, OFFSET_MS
+    samples_truncate = int(
+        - (OFFSET_MS + last_time.microsecond / 1e3) / 1000 * truerate + 0.5)
+    print 'TRUNC=', samples_truncate
+    # print OFFSET_MS, last_time.microsecond
+    # print - (OFFSET_MS + last_time.microsecond)
+    # print truerate
+    if samples_truncate < 0:
+        raise Exception
+
+    return samples_truncate
+
+def output_signal(datetime_sec, samples):
+    """
+    Record (or 'convert' in the migration recorder case) one file from
+    the raw file specified by 'datestr' and 'line' in the file.
+    Note that the 'line' is true line number of the file.  Comment line is also
+    counted.  And return True.
+    Return false if signal file already existed.
+    """
+    from lib.config import BeaconConfigParser
+    from lib.fileio import getpath_signalfile
+    from sigretr import retrieve_signal, write_wav_file, adjust_len
+    import os
+    import time
+    import wave
+
+    # if not hasattr(record_one_file, 'n_samples'):
+    #     record_one_file.n_samples = \
+    #        LEN_INPUT_SEC * BeaconConfigParser().getint('Signal', 'samplerate')
+
+    filename = time.strftime('%Y%m%d/%H%M%S.wav', time.gmtime(datetime_sec))
+    print filename
+    return
+
+    filename = datestr + '/' + timestr + '.wav'
+    filepath = getpath_signalfile(datestr + '/' + timestr + '.wav')
+
+    # If the signal file exists and can be ignored, skip file retrieval
+    try:
+        if skip_if_exist and \
+                wave.open(filepath, 'rb').getnframes() == \
+                record_one_file.n_samples:
+            return False
+    except IOError as err:
+        if err[1] == 'No such file or directory':
+            # File does not exist...
+            pass
+        else:
+            raise
+    except:
+        raise
+
+    # Read signal data from raw file, and write it as .wav file
+    sig = retrieve_signal(datestr, line, debug=False)
+    sig = adjust_len(sig)
+    write_wav_file(filename, sig, to_signal_dir=True)
+
+    return True
+
+class CutOutSamples:
+    """
+    Repeatably receive samples and output 10 seconds wave file when enough
+    samples are collected.
+    """
+    def __init__(self, samplerate):
+        self.samplerate = samplerate
+        self.samples = bytearray('')
+        self.first = True
+        self.head_time = None
+
+    def extend(self, time, samples):
+        from datetime import datetime
+        self.samples.extend(samples)
+        print time, len(self.samples)
+
+        self.cur_sec_x10 = sec_x10(time)
+        if self.first:
+            self.last_sec_x10 = self.cur_sec_x10
+            self.lasttime = time
+            self.first = False
+            return
+
+        if self.last_sec_x10 < FILE_CHANGE_TIMING and \
+            self.cur_sec_x10 >= FILE_CHANGE_TIMING:
+                if self.head_time is not None:
+                    # print 'Now output file'
+                    start_sample = calc_pos(self.samplerate, \
+                        len(self.samples) / 2 / 2,      # 2 ch * S16_LE
+                        self.head_time,
+                        time)
+
+                    datetime_sec = int(
+                        (time - datetime(1970, 1, 1)).total_seconds())
+                    datetime_sec = (datetime_sec / 10) * 10
+
+                    output_signal(datetime_sec, self.samples[
+                        start_sample * 2 * 2 : \
+                        (start_sample + self.samplerate * 10) * 2 * 2])
+                        # 2 ch * S16_LE
+                    # register
+
+                self.samples = samples
+                self.head_time = self.lasttime
+
+        self.last_sec_x10 = self.cur_sec_x10
+        self.lasttime = time
+
 from multiprocessing import Process
 class SigProc(Process):
     """
     Signal Processor running on a different process (thread) so that it doesn't
     affect ALSA capturing even if SigProc is blocked by some reason
     """
-    def __init__(self, queue):
+    import numpy as np
+
+    def __init__(self, samplerate, queue):
         Process.__init__(self)
         self.queue = queue
+        self.samplerate = samplerate
 
     def run(self):
+        cutout = CutOutSamples(self.samplerate)
         while True:
             try:
-                signals, now = self.queue.get()
-                print signals[0], now
+                new_samples, now = self.queue.get()
+                cutout.extend(now, bytearray(new_samples))
             except KeyboardInterrupt:
                 eprint('Interrupted by user.  Aborted.')
                 break
@@ -295,10 +430,7 @@ def startrec(check_limit=False, debug=False):
     from multiprocessing import Queue
     from softrock import initialize
     import alsaaudio
-
-    queue = Queue()
-    sigproc = SigProc(queue)
-    sigproc.start()
+    import sys
 
     # Initalize SoftRock
     initialize(debug=debug)
@@ -313,35 +445,43 @@ def startrec(check_limit=False, debug=False):
     inp.setchannels(2)
 
     truerate = inp.setrate(samplerate)
-    if debug or samplerate != truerate:
-        print "actual sample rate = %d [Hz]" % (truerate)
+    if truerate != samplerate:
+        eprint("Can't specify samplerate %d [Hz] to CODEC" % (samplerate))
+        sys.exit(1)
 
+    queue = Queue()
+    sigproc = SigProc(samplerate, queue)
+    sigproc.start()
+
+    periodsize = samplerate / 10    # XXX  magic number
     inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-    inp.setperiodsize(samplerate / 10)
+    inp.setperiodsize(periodsize)
     
     # Continuously push the data to queue
-    FREQ_CHANGE_TIMING = 88
     first = True
     while True:
-        signals = inp.read()
+        readsize, samples = inp.read()
         now = datetime.utcnow()
-        queue.put((signals, now))
+
+        # If buffer overrun occurred, tell the SigProc
+        if readsize != periodsize:
+            eprint('Overrun occurred.')
+            samples = '\0' * periodsize * 2 * 2  # 2 ch * S16_LE
+
+        queue.put((samples, now))
 
         # Change receiving frequency at appropriate timing
 
-        # sec_x10 takes value from 0 to 99.
-        # 0.0 sec corresponds to 0.
-        # 3.4 sec corresponds to 34, and so on.
-        # 51.2 sec corresponds to 12 (not 512), and so on.
-        sec_x10 = (now.second % 10) * 10 + now.microsecond / 100000
+        cur_sec_x10 = sec_x10(now)
         if first:
-            last_sec_x10 = sec_x10
+            last_sec_x10 = cur_sec_x10
 
-        if last_sec_x10 < FREQ_CHANGE_TIMING and sec_x10 >= FREQ_CHANGE_TIMING:
+        if last_sec_x10 < FREQ_CHANGE_TIMING and \
+                cur_sec_x10 >= FREQ_CHANGE_TIMING:
             change_freq(now, bfo_offset_hz, debug)
 
         # Final processes for the next iteration
-        last_sec_x10 = sec_x10
+        last_sec_x10 = cur_sec_x10
         first = False
 
     sigproc.join()

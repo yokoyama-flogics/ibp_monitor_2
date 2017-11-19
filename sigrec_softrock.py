@@ -258,25 +258,17 @@ def calc_pos(samplerate, n_samples, last_time, cur_time):
     """
     Calculate sample position correspond to the OFFSET_MS
     """
-    # len_time = (cur_time.second % 10) + cur_time.microsecond / 1e6 \
-    #         - OFFSET_MS / 1000
     len_time = (cur_time - last_time).total_seconds()
     truerate = n_samples / len_time
-    print cur_time, len_time, samplerate, n_samples, truerate
-    print last_time
-    print last_time.microsecond / 1e3, OFFSET_MS
     samples_truncate = int(
         - (OFFSET_MS + last_time.microsecond / 1e3) / 1000 * truerate + 0.5)
-    print 'TRUNC=', samples_truncate
-    # print OFFSET_MS, last_time.microsecond
-    # print - (OFFSET_MS + last_time.microsecond)
-    # print truerate
+    # print 'TRUNC=', samples_truncate
     if samples_truncate < 0:
         raise Exception
 
     return samples_truncate
 
-def output_signal(datetime_sec, samples):
+def output_signal(datetime_sec, samples, samplerate):
     """
     Record (or 'convert' in the migration recorder case) one file from
     the raw file specified by 'datestr' and 'line' in the file.
@@ -285,42 +277,52 @@ def output_signal(datetime_sec, samples):
     Return false if signal file already existed.
     """
     from lib.config import BeaconConfigParser
-    from lib.fileio import getpath_signalfile
+    from lib.fileio import mkdir_if_required, getpath_signalfile
     from sigretr import retrieve_signal, write_wav_file, adjust_len
     import os
     import time
     import wave
+    import numpy as np
+    import sys      # XXX
 
-    # if not hasattr(record_one_file, 'n_samples'):
-    #     record_one_file.n_samples = \
-    #        LEN_INPUT_SEC * BeaconConfigParser().getint('Signal', 'samplerate')
+    n_samples = len(samples) / 4
+    np.set_printoptions(edgeitems=1000000)
 
-    filename = time.strftime('%Y%m%d/%H%M%S.wav', time.gmtime(datetime_sec))
+    lrlag = BeaconConfigParser().getint('SignalRecorder', 'lrlag')
+    filename = getpath_signalfile(
+        time.strftime('%Y%m%d/%H%M%S.wav', time.gmtime(datetime_sec)))
     print filename
-    return
 
-    filename = datestr + '/' + timestr + '.wav'
-    filepath = getpath_signalfile(datestr + '/' + timestr + '.wav')
+    # filepath = getpath_signalfile(datestr + '/' + timestr + '.wav')
+    s = np.frombuffer(samples, dtype=np.dtype(np.int16))
+    s = s.reshape((n_samples, 2))
+    print len(s), s.shape
 
-    # If the signal file exists and can be ignored, skip file retrieval
-    try:
-        if skip_if_exist and \
-                wave.open(filepath, 'rb').getnframes() == \
-                record_one_file.n_samples:
-            return False
-    except IOError as err:
-        if err[1] == 'No such file or directory':
-            # File does not exist...
-            pass
-        else:
-            raise
-    except:
-        raise
+    ch_L = s[:, 0]
+    ch_R = s[:, 1]
 
-    # Read signal data from raw file, and write it as .wav file
-    sig = retrieve_signal(datestr, line, debug=False)
-    sig = adjust_len(sig)
-    write_wav_file(filename, sig, to_signal_dir=True)
+    # Adjust lag if required
+    if lrlag > 0:
+        lag = lrlag
+        ch_R[0 : n_samples - lag] = ch_R[lag : n_samples]
+    elif lrlag < 0:
+        lag = - lrlag
+        ch_L[0 : n_samples - lag] = ch_R[lag : n_samples]
+
+    ch_I = ch_L
+    ch_Q = ch_R
+
+    out_samples = np.column_stack((ch_I, ch_Q)).flatten()
+    bytes = bytearray(out_samples)
+
+    mkdir_if_required(filename)
+
+    wavfile = wave.open(filename, 'wb')
+    wavfile.setnchannels(2)
+    wavfile.setsampwidth(2)
+    wavfile.setframerate(samplerate)
+    wavfile.writeframesraw(bytes)
+    wavfile.close()
 
     return True
 
@@ -338,7 +340,7 @@ class CutOutSamples:
     def extend(self, time, samples):
         from datetime import datetime
         self.samples.extend(samples)
-        print time, len(self.samples)
+        # print time, len(self.samples)
 
         self.cur_sec_x10 = sec_x10(time)
         if self.first:
@@ -362,8 +364,9 @@ class CutOutSamples:
 
                     output_signal(datetime_sec, self.samples[
                         start_sample * 2 * 2 : \
-                        (start_sample + self.samplerate * 10) * 2 * 2])
+                        (start_sample + self.samplerate * 10) * 2 * 2], \
                         # 2 ch * S16_LE
+                        self.samplerate)
                     # register
 
                 self.samples = samples

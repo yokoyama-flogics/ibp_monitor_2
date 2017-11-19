@@ -260,30 +260,89 @@ class SigProc(Process):
                 eprint('Interrupted by user.  Aborted.')
                 break
 
+def change_freq(time, bfo_offset_hz, debug):
+    """
+    Tune receiver to the next receiving frequency
+    Note that frequency for the next coming 10 sec boundary
+    """
+    from datetime import datetime
+    from softrock import set_freq
+
+    datetime_sec = int((time - datetime(1970, 1, 1)).total_seconds())
+    datetime_sec = (datetime_sec / 10 + 1) * 10
+
+    minute = (datetime_sec / 60) % 60
+    band_idx = (minute % 15) / 3
+
+    freq_base_khz = {
+        0: 14100,
+        1: 18110,
+        2: 21150,
+        3: 24930,
+        4: 28200
+    }[band_idx]
+
+    if debug:
+        print 'Changing frequency: minute=%d, freq_base_khz=%d' % \
+            (minute, freq_base_khz)
+
+    freq = freq_base_khz * 1000 - bfo_offset_hz
+    set_freq(freq, debug=False)
+
 def startrec(check_limit=False, debug=False):
     from datetime import datetime
     from lib.config import BeaconConfigParser
     from multiprocessing import Queue
+    from softrock import initialize
     import alsaaudio
 
     queue = Queue()
     sigproc = SigProc(queue)
     sigproc.start()
 
+    # Initalize SoftRock
+    initialize(debug=debug)
+
+    bfo_offset_hz = BeaconConfigParser().getint(
+        'SignalRecorder', 'bfo_offset_hz')
+
     device = BeaconConfigParser().get('SignalRecorder', 'alsa_dev')
     samplerate = BeaconConfigParser().getint('Signal', 'samplerate')
+
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, device=device)
     inp.setchannels(2)
-    truerate =inp.setrate(samplerate)
+
+    truerate = inp.setrate(samplerate)
     if debug or samplerate != truerate:
         print "actual sample rate = %d [Hz]" % (truerate)
+
     inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
     inp.setperiodsize(samplerate / 10)
     
+    # Continuously push the data to queue
+    FREQ_CHANGE_TIMING = 88
+    first = True
     while True:
         signals = inp.read()
         now = datetime.utcnow()
         queue.put((signals, now))
+
+        # Change receiving frequency at appropriate timing
+
+        # sec_x10 takes value from 0 to 99.
+        # 0.0 sec corresponds to 0.
+        # 3.4 sec corresponds to 34, and so on.
+        # 51.2 sec corresponds to 12 (not 512), and so on.
+        sec_x10 = (now.second % 10) * 10 + now.microsecond / 100000
+        if first:
+            last_sec_x10 = sec_x10
+
+        if last_sec_x10 < FREQ_CHANGE_TIMING and sec_x10 >= FREQ_CHANGE_TIMING:
+            change_freq(now, bfo_offset_hz, debug)
+
+        # Final processes for the next iteration
+        last_sec_x10 = sec_x10
+        first = False
 
     sigproc.join()
 

@@ -6,8 +6,6 @@ Scans Monitor-1 style signal raw file (one file a day) and generate a
 ten-seconds .wav file.
 """
 
-# XXX We should take care of iqlag (I/Q sample delay in input) in the tool.
-
 from lib.common import eprint
 
 def retrieve_signal(date_str, line_num, debug=False):

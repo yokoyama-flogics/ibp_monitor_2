@@ -111,6 +111,8 @@ def output_signal(datetime_sec, samples, samplerate):
     np.set_printoptions(edgeitems=1000000)
 
     lrlag = BeaconConfigParser().getint('SignalRecorder', 'lrlag')
+    sig_iq = BeaconConfigParser().get('SignalRecorder', 'sig_iq')
+
     filename = getpath_signalfile(
         time.strftime('%Y%m%d/%H%M%S.wav', time.gmtime(datetime_sec)))
     print filename
@@ -132,9 +134,24 @@ def output_signal(datetime_sec, samples, samplerate):
         ch_L[0 : n_samples - lag] = ch_L[lag : n_samples]
 
     # XXX   L/R from 12:33 JST Nov/20
-    # XXX   R/L from 12:58 JST Nov/20
-    ch_I = ch_R     # XXX   L/R from 12:33 JST Nov/20
-    ch_Q = ch_L     # XXX
+    # XXX   R/L from 12:58 JST Nov/20 Lite9 good
+    # XXX   L/R from 13:53 JST Nov/20 Lite9 bad
+    # XXX   R/L from 14:56 JST Nov/20 with Ensemble III and back antenna: bad
+    # XXX   R/L from 15:30 JST Nov/20 with Ensemble III and main antenna: good
+    # XXX   R/L from 15:40 JST Nov/20 with Ensemble III and back antenna: bad
+    # XXX   R/L from 16:18 JST Nov/20 with Ensemble III and main antenna:
+    # ch_I = ch_R     # XXX   L/R from 12:33 JST Nov/20
+    # ch_Q = ch_L     # XXX
+
+    if sig_iq == 'L/R':
+        ch_I = ch_L
+        ch_Q = ch_R
+    elif sig_iq == 'R/L':
+        ch_I = ch_R
+        ch_Q = ch_L
+    else:
+        eprint('[SignalRecorder] sig_iq must be L/R or R/L')
+        raise Exception
 
     out_samples = np.column_stack((ch_I, ch_Q)).flatten()
     bytes = bytearray(out_samples)

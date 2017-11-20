@@ -102,9 +102,8 @@ def set_freq(freq_hz, dryrun=False, debug=False):
 
         # Referred http://www.n8mdp.com/sdrLinux.php and usbsoftrock source code
         # on the site
-        COEF = 2.097152
         MULT = 4
-        freq_hz *= (1.0 + calib) * COEF * MULT
+        freq_hz *= (1.0 + calib) / 1e6 * (1 << 21) * MULT
         ival = int(freq_hz + 0.5)
 
     if debug:

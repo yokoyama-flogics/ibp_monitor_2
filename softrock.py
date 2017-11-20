@@ -4,6 +4,7 @@ SoftRock Controller
 
 VENDOR_ID = 0x16c0
 PRODUCT_ID = 0x05dc
+I2C_ADDR = 0x55         # Mandatory for old version firmware
 TIMEOUT = 500
 
 import usb1
@@ -121,7 +122,7 @@ def set_freq(freq_hz, dryrun=False, debug=False):
         softrock_handle().controlWrite(
             usb1.TYPE_VENDOR | usb1.RECIPIENT_DEVICE | usb1.ENDPOINT_OUT,
             0x32,
-            0,
+            0x700 + I2C_ADDR,
             0,
             bytes,
             TIMEOUT)

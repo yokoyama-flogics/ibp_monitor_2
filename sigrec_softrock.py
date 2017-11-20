@@ -129,7 +129,7 @@ def output_signal(datetime_sec, samples, samplerate):
         ch_R[0 : n_samples - lag] = ch_R[lag : n_samples]
     elif lrlag < 0:
         lag = - lrlag
-        ch_L[0 : n_samples - lag] = ch_R[lag : n_samples]
+        ch_L[0 : n_samples - lag] = ch_L[lag : n_samples]
 
     # XXX   L/R from 12:33 JST Nov/20
     # XXX   R/L from 12:58 JST Nov/20

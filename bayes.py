@@ -280,6 +280,10 @@ class BayesInference:
     def calc(self, freq_khz, bias_param, sn, ct, bias_hz, if_bias_hz):
         from lib.ibp import freq_khz_to_mhz
 
+        # In the case that charex couldn't calculate characteristic
+        if sn == -float('Inf'):
+            return 0.0
+
         band = freq_khz_to_mhz(freq_khz)
 
         # Calculating probability parameters (not well known)

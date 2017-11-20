@@ -243,7 +243,8 @@ def charex(sigdata, samplerate, offset_ms, bfo_offset_hz, debug=False):
             np.exp(1j * np.deg2rad(np.arange(0, 90 * n_samples, 90)))
 
     if len(sigdata) != n_samples * n_channels * np.dtype(dtype).itemsize:
-        raise Exception('Length of sigdata (%d) is illegal' % (len(sigdata)))
+        eprint('Length of sigdata (%d) is illegal' % (len(sigdata)))
+        return character1(-float('Inf'), 0, 0, 0, 0.0)
 
     # Convert the sigdata (raw stream) to input complex vector
     # It is okay that each I/Q value is 16-bit signed integer and as same as

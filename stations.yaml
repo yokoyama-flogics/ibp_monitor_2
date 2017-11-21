@@ -1,0 +1,113 @@
+- # slot 0
+  - effective: '1970-01-01'
+    callsign:  '4U1UN'
+    region:    'United Nations'
+    latitude:   +40.75
+    longitude:  -73.97
+- # slot 1
+  - effective: '1970-01-01'
+    callsign:  'VE8AT'
+    region:    'Canada'
+    latitude:   +79.99
+    longitude:  -85.81
+- # slot 2
+  - effective: '1970-01-01'
+    callsign:  'W6WX'
+    region:    'United States'
+    latitude:   +37.16
+    longitude: -121.91
+- # slot 3
+  - effective: '1970-01-01'
+    callsign:  'KH6WO'
+    region:    'Hawaii'
+    latitude:   +21.63
+    longitude: -157.92
+  - effective: '2016-01-12'
+    callsign:  'KH6RS'
+    region:    'Hawaii'
+    latitude:   +20.76
+    longitude: -156.34
+- # slot 4
+  - effective: '1970-01-01'
+    callsign:  'ZL6B'
+    region:    'New Zealand'
+    latitude:   -41.04
+    longitude: +175.59
+- # slot 5
+  - effective: '1970-01-01'
+    callsign:  'VK6RBP'
+    region:    'Australia'
+    latitude:   -32.11
+    longitude: +116.07
+- # slot 6
+  - effective: '1970-01-01'
+    callsign:  'JA2IGY'
+    region:    'Japan'
+    latitude:   +34.46
+    longitude: +136.78
+- # slot 7
+  - effective: '1970-01-01'
+    callsign:  'RR9O'
+    region:    'Russia'
+    latitude:   +55.05
+    longitude:  +82.92
+- # slot 8
+  - effective: '1970-01-01'
+    callsign:  'VR2B'
+    region:    'Hong Kong'
+    latitude:   +22.27
+    longitude: +114.15
+- # slot 9
+  - effective: '1970-01-01'
+    callsign:  '4S7B'
+    region:    'Sri Lanka'
+    latitude:    +6.89
+    longitude:  +79.86
+- # slot 10
+  - effective: '1970-01-01'
+    callsign:  'ZS6DN'
+    region:    'South Africa'
+    latitude:   -25.91
+    longitude:  +28.27
+- # slot 11
+  - effective: '1970-01-01'
+    callsign:  '5Z4B'
+    region:    'Kenya'
+    latitude:    -1.02
+    longitude:  +37.05
+- # slot 12
+  - effective: '1970-01-01'
+    callsign:  '4X6TU'
+    region:    'Israel'
+    latitude:   +32.07
+    longitude:  +34.76
+- # slot 13
+  - effective: '1970-01-01'
+    callsign:  'OH2B'
+    region:    'Finland'
+    latitude:   +60.20
+    longitude:  +24.80
+- # slot 14
+  - effective: '1970-01-01'
+    callsign:  'CS3B'
+    region:    'Madeira'
+    latitude:   +32.71
+    longitude:  -16.81
+- # slot 15
+  - effective: '1970-01-01'
+    callsign:  'LU4AA'
+    region:    'Argentina'
+    latitude:   -34.60
+    longitude:  -58.40
+- # slot 16
+  - effective: '1970-01-01'
+    callsign:  'OA4B'
+    region:    'Peru'
+    latitude:   -12.09
+    longitude:  -77.02
+- # slot 17
+  - effective: '1970-01-01'
+    callsign:  'YV5B'
+    region:    'Venezuela'
+    latitude:    +9.09
+    longitude:  -67.82

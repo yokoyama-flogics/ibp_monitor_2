@@ -13,25 +13,32 @@ from lib.common import eprint
 from flask import Flask, send_file, render_template
 app = Flask(__name__)
 
-@app.route('/graph/<datetime>.<ext>')
+@app.route('/graph/<datetime_str>.<ext>')
 def send_png(**kwargs):
+    from datetime import datetime
+    import re
     import StringIO
     from gengraph import gen_graph
 
-    datetime = kwargs['datetime']
+    datetime_str = kwargs['datetime_str']
     ext = kwargs['ext']
 
     errmsg =  '<title>404 Not Found</title>' \
             + '<h1>Not Found</h1>' \
             + '<p>The requested URL was not found on the server.</p>'
 
+    if datetime_str == 'today':
+        datetime_str = datetime.strftime(datetime.utcnow(), '%Y%m%d')
+    elif not re.match('\d{8}$', datetime_str):
+        return errmsg, 404
+
     if ext in ['png', 'gif']:
         file = StringIO.StringIO()
-        gen_graph(datetime, file, format=ext.upper())
+        gen_graph(datetime_str, file, format=ext.upper())
 
         try:
             return send_file(file,
-                attachment_filename='%s.%s' % (datetime, ext),
+                attachment_filename='%s.%s' % (datetime_str, ext),
                 mimetype='image/%s' % ext)
         except:
             return errmsg, 404

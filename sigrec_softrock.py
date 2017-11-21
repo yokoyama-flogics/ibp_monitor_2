@@ -9,7 +9,7 @@ FILE_CHANGE_TIMING = (10000 + OFFSET_MS) / 100
 import os
 import sys
 
-LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal   XXX
+LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal
 
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -106,6 +106,11 @@ def output_signal(datetime_sec, samples, samplerate):
     import wave
     import numpy as np
     import sys      # XXX
+
+    # If length of samples are short, append zeros at the tail
+    expected_n_samples = samplerate * LEN_INPUT_SEC * 2 * 2     # 2 ch * S16_LE
+    if len(samples) < expected_n_samples:
+        samples.extend([0] * (expected_n_samples - len(samples)))
 
     n_samples = len(samples) / 4
     np.set_printoptions(edgeitems=1000000)
@@ -204,10 +209,13 @@ class CutOutSamples:
                         (time - datetime(1970, 1, 1)).total_seconds())
                     datetime_sec = (datetime_sec / 10) * 10
 
-                    output_signal(datetime_sec, self.samples[
+                    # 2 ch * S16_LE
+                    truncated_samples = self.samples[
                         start_sample * 2 * 2 : \
-                        (start_sample + self.samplerate * 10) * 2 * 2], \
-                        # 2 ch * S16_LE
+                        (start_sample + self.samplerate * 10) * 2 * 2]
+                    if len(truncated_samples) != self.samplerate * 10 * 2 * 2:
+                        print '# illegal len', start_sample, self.head_time, time   # XXX
+                    output_signal(datetime_sec, truncated_samples,
                         self.samplerate)
                     register_db(datetime_sec)
 

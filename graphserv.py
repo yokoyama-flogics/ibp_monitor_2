@@ -39,7 +39,8 @@ def send_png(**kwargs):
         try:
             return send_file(file,
                 attachment_filename='%s.%s' % (datetime_str, ext),
-                mimetype='image/%s' % ext)
+                mimetype='image/%s' % ext,
+                cache_timeout=10)
         except:
             return errmsg, 404
     else:

@@ -214,7 +214,7 @@ class CutOutSamples:
                         start_sample * 2 * 2 : \
                         (start_sample + self.samplerate * 10) * 2 * 2]
                     if len(truncated_samples) != self.samplerate * 10 * 2 * 2:
-                        print '# illegal len', start_sample, self.head_time, time   # XXX
+                        print '# illegal len', len(self.samples), len(truncated_samples), start_sample, self.head_time, time   # XXX
                     output_signal(datetime_sec, truncated_samples,
                         self.samplerate)
                     register_db(datetime_sec)

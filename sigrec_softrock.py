@@ -351,8 +351,35 @@ def task():
     """
     Entry point for Task Keeper
     """
-    raise Exception
-    startrec(arg_from='today', ignore_err=True, check_limit=False, debug=False)
+    startrec(check_limit=False, debug=False)
+
+def startrec_with_recover(check_limit=False, debug=False):
+    """
+    Even startrec() failed, it will be relaunched
+    """
+    import logging
+
+    logging.basicConfig(filename='sigrec.log')
+
+    def datestr():
+        from datetime import datetime
+        return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    while True:
+        try:
+            startrec(check_limit=check_limit, debug=debug)
+            eprint('startrec() exited at %s.  Continued.' % (datestr()))
+
+        except KeyboardInterrupt:
+            eprint('Interrupted by user.  Aborted.')
+            break
+
+        except:
+            eprint('startrec() raised an exception at %s.  Continued.' % \
+                (datestr()))
+            logging.exception('startrec() at ' + datestr())
+
+        sleep(1)
 
 def main():
     import argparse
@@ -372,7 +399,7 @@ def main():
         help='check if generated signal files are too many (it makes very slow')
     args = parser.parse_args()
 
-    startrec(check_limit=args.checklimit, debug=args.debug)
+    startrec_with_recover(check_limit=args.checklimit, debug=args.debug)
 
 if __name__ == "__main__":
     main()

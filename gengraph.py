@@ -162,10 +162,16 @@ def imputmark(im, tindex, bindex, sindex, colidx):
                 split = 0
         im.filledRectangle((x, y), (x + cwidth - 2, y + cheight - 2), colidx)
 
-def gen_graph(datestr, outfile_name, debug=False):
+def gen_graph(datestr, outfile_name, format=None, debug=False):
+    """
+    Generate graph
+    outfile_name can be StringIO.  In the case, format must be 'PNG' or 'GIF'
+    if outfile_name is string (or file name), format will be ignored
+    """
     from datetime import datetime, timedelta
     from lib.fileio import connect_database
     from lib.ibp import freq_khz_to_mhz, get_slot
+    import re
 
     im = gd.image((lborder + rborder + cwidth * 96 - 1, \
         tborder + bborder + 18 * (cheight * 5 + sskip) - sskip))
@@ -218,9 +224,35 @@ def gen_graph(datestr, outfile_name, debug=False):
         else:
                 imputmark(im, tindex, bindex, sindex, nosig)
 
-    fimg = open(outfile_name, "wb")
-    im.writePng(fimg)
-    fimg.close()
+    if type(outfile_name) is not str:
+        import StringIO
+
+        if format == 'PNG':
+            writer = im.writePng
+        elif format == 'GIF':
+            writer = im.writeGif
+        else:
+            raise Exception('Unknown output file format')
+
+        fimg = outfile_name
+        writer(fimg)
+        fimg.seek(0)
+
+    else:
+        if re.search('\.png$', outfile_name, flags=re.IGNORECASE):
+            writer = im.writePng
+        elif re.search('\.gif$', outfile_name, flags=re.IGNORECASE):
+            writer = im.writeGif
+        else:
+            raise Exception('Unknown output file format')
+        fimg = open(outfile_name, "wb")
+        writer(fimg)
+        fimg.close()
+
+def task():
+    """
+    Continuously generate PNG graph files
+    """
 
 def main():
     import argparse

@@ -11,9 +11,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
 
-def keep_task(func, name, sleep_sec=1):
+def keep_task(func, name, exit_return=False, sleep_sec=1):
     """
     Iterate function func and restart when it exited or raised an exception
+    if the function completed, it will be restarted if exit_return is True
     """
     from time import sleep
 
@@ -24,7 +25,12 @@ def keep_task(func, name, sleep_sec=1):
     while True:
         try:
             func()
+            if exit_return:
+                return
+
             eprint('Function %s exited at %s.  Continued.' % (name, datestr()))
+            logging.error('Function %s exited at %s.  Continued.' % \
+                (name, datestr()))
 
         except KeyboardInterrupt:
             break
@@ -57,10 +63,16 @@ def task_keeper(debug=False):
 
     proc = {}
     for task in task_names:
+        if task[0] == '@':
+            exit_return = True
+            task = task[1:]
+        else:
+            exit_return = False
+
         exec 'from ' + task + ' import task as f'
         proc[task] = Process(
             target=keep_task,
-            args=(eval('f'), task + '.task()'))
+            args=(eval('f'), task + '.task()', exit_return))
         proc[task].start()
 
     try:
@@ -75,6 +87,9 @@ def task_keeper(debug=False):
         eprint('Interrupted by user.  Aborted.')
 
     for task in task_names:
+        if task[0] == '@':
+            task = task[1:]
+
         proc[task].join()
 
 def main():

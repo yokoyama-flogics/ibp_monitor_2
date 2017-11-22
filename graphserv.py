@@ -27,8 +27,11 @@ def send_png(**kwargs):
             + '<h1>Not Found</h1>' \
             + '<p>The requested URL was not found on the server.</p>'
 
+    cache_timtout = None
+
     if datetime_str == 'today':
         datetime_str = datetime.strftime(datetime.utcnow(), '%Y%m%d')
+        cache_timtout = 10
     elif not re.match('\d{8}$', datetime_str):
         return errmsg, 404
 
@@ -40,7 +43,7 @@ def send_png(**kwargs):
             return send_file(file,
                 attachment_filename='%s.%s' % (datetime_str, ext),
                 mimetype='image/%s' % ext,
-                cache_timeout=10)
+                cache_timeout=cache_timeout)
         except:
             return errmsg, 404
     else:

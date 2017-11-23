@@ -298,3 +298,5 @@
 ## If you have any questions
 
 Please contact me by email.
+Email address is shown in the 'Links' list on the site
+http://ayoko.net/beacon/ .

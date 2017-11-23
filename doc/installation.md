@@ -21,6 +21,14 @@
 
 ## Installation
 
+I prepared two ways to install the software.
+
+- Recommended way
+
+- Easy way
+
+### Recommended way
+
 1. Install Raspbian Stretch Lite (2017-09-07 version) as explained at
    https://www.raspberrypi.org/documentation/installation/installing-images/ .
 
@@ -52,7 +60,7 @@
 
 6. [recommended] You can enable SSH server to login via Ethernet, run
    'sudo raspbi-config', choose options 'Interfacing Options' ->
-   'SSH', and enable it.  PLEASE TAKE CARE that your Raspberry Pi may
+   'SSH', and enable it.  PLEASE TAKE NOTICE that your Raspberry Pi may
    be controlled by intruders from the Internet.  You should change
    password at least.  (Firewall should be placed between the Internet
    and your Raspberry Pi.)
@@ -61,11 +69,6 @@
    'ssh pi@192.168.1.75' from your PC.  Please find, by Google, where
    you can install an SSH client if you use Windows.  SSH client is
    already installed if you use Mac OS or Linux.
-
-8. Connect a Behringer UCA202 to Raspberry Pi.  If you chose a
-   different model, please find a solution by the Internet.  Google
-   would help.  TI PCM2902 chip equipped model is strongly recommended
-   because it was tested by Beacon Monitor 1 and 2, for long time.
 
 10. Now, it is the time to install various tools which Beacon
    Monitor-2 requires.  Follow the steps below.
@@ -132,17 +135,70 @@
 
     ````ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05dc", SUBSYSTEMS=="usb", ACTION=="add", MODE="660", GROUP="users"````
 
-9. Connect SoftRock to Raspberry Pi.  My personal recommended steps
-   is, first apply power by DC jack (should be 12V.  Please consult
-   with SoftRock documentation), and connect SoftRock by USB cable
-   later.
-
 11. Next, you need to choose which version of Beacon Monitor-2 you
     want to run.  At the moment, let's use the branch
     ````beta```` because that is the only release at the
     moment.  (Sorry.)  Checkout the source code.
 	
     ````$ git checkout beta````
+
+### Easy way
+
+1. Download
+   [pre-built image](https://github.com/yokoyama-flogics/ibp_monitor_2/releases/download/BETA_20171123/beta_20171123.zip)
+   and unzip it.
+
+1. Install the pre-built image 'beta_20171123.img' as same as Raspbian
+   explained at
+   https://www.raspberrypi.org/documentation/installation/installing-images/
+   .
+
+2. Insert the SD card to Raspberry Pi, connect Ethernet cable, and
+   power the board.
+
+3. Log in by user 'pi' and password 'raspberry', and find assigned IP
+   address to the Raspberry Pi.  Use command 'ifconfig' and find a
+   line like
+
+   ````
+   inet 192.168.1.75  netmask 255.255.255.0  broadcast 192.168.1.255
+   ````
+
+   The '192.168.1.75' is assigned IP address of the Raspberry Pi.
+   '127.0.0.1' is a local address and not the case.  Hereafter, we
+   assume our Raspberry Pi has this IP address in this document.
+
+4. PLEASE TAKE NOTICE that your Raspberry Pi may
+   be controlled by intruders from the Internet.  You should change
+   password at least.  (Firewall should be placed between the Internet
+   and your Raspberry Pi.)
+
+4. [recommended] Expand file system by raspi-config.
+
+   ````$ sudo raspi-config````
+
+   Choose 'Advanced Options' and follow 'Expand Filesystem' and
+   execute it.
+
+4. Change directory and launch command 'screen'.
+
+   ````$ cd ibp_monitor_2````
+
+   ````$ screen````
+
+   (Press space or return key.)
+
+## Configuration and run the monitor
+
+8. Connect a Behringer UCA202 to Raspberry Pi.  If you chose a
+   different model, please find a solution by the Internet.  Google
+   would help.  TI PCM2902 chip equipped model is strongly recommended
+   because it was tested by Beacon Monitor 1 and 2, for long time.
+
+9. Connect SoftRock to Raspberry Pi.  My personal recommended steps
+   is, first apply power by DC jack (should be 12V.  Please consult
+   with SoftRock documentation), and connect SoftRock by USB cable
+   later.
 
 12. Now, you should configure how Beacon Monitor-2 operates.
     Configurations are described in the file 'bm2.cfg'.  Please open

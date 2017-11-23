@@ -2,7 +2,9 @@
 
 ## Required gadgets
 
-- Raspberry Pi 3 + appropriate micro SD card (16GB is enough)
+- Raspberry Pi 3 + appropriate micro SD card (4GB is enough if you use
+  USB memory stick for database storage, but 16GB is typical because
+  it isn't more expensive than smaller ones nowadays)
 
 - SoftRock Receiver (SoftRock RX Ensemble II HF Receiver Kit of Five
   Dash Inc. may work... I tested it only by ancient 'RX Lite + USB
@@ -45,7 +47,8 @@
    ````
 
    The '192.168.1.75' is assigned IP address of the Raspberry Pi.
-   '127.0.0.1' is a local address and not the case.
+   '127.0.0.1' is a local address and not the case.  Hereafter, we
+   assume our Raspberry Pi has this IP address in this document.
 
 6. [recommended] You can enable SSH server to login via Ethernet, run
    'sudo raspbi-config', choose options 'Interfacing Options' ->

@@ -100,7 +100,6 @@ def output_signal(datetime_sec, samples, samplerate):
     """
     from lib.config import BeaconConfigParser
     from lib.fileio import mkdir_if_required, getpath_signalfile
-    from sigretr import retrieve_signal, write_wav_file, adjust_len
     import os
     import time
     import wave

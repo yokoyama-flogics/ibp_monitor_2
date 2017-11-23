@@ -357,6 +357,7 @@ def startrec_with_recover(check_limit=False, debug=False):
     """
     Even startrec() failed, it will be relaunched
     """
+    from time import sleep
     import logging
 
     logging.basicConfig(filename='sigrec.log')

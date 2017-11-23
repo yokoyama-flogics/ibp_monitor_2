@@ -58,19 +58,19 @@
    'ssh pi@192.168.1.75' from your PC.  Please find, by Google, where
    you can install an SSH client if you use Windows.  SSH client is
    already installed if you use Mac OS or Linux.
-   
+
 8. Connect a Behringer UCA202 to Raspberry Pi.  If you chose a
    different model, please find a solution by the Internet.  Google
    would help.  TI PCM2902 chip equipped model is strongly recommended
    because it was tested by Beacon Monitor 1 and 2, for long time.
-   
+
 10. Now, it is the time to install various tools which Beacon
    Monitor-2 requires.  Follow the steps below.
 
     The tool 'screen' is quite helpful to operate Beacon Monitor.  You
     can logout Raspberry Pi while running Monitor while monitoring the
     status messages.
-   
+
     If you see any errors, it is recommended to run 'sudo apt-get
     update' once again, and retry the steps.
 
@@ -93,13 +93,13 @@
     ````$ sudo pip install flask````
 	
     ````$ sudo pip install pyyaml````
-    
+
 11. Next, we need the latest pyalsaaudio.  It required a slightly
     complicated procedure.
 	
     ````$ mkdir ~/tmp && cd ~/tmp````
 
-    ````$ wget https://pypi.python.org/packages/52/b6/44871791929d9d7e11325af0b7be711388dfeeab17147988f044a41a6d83/pyalsaaudio-0.8.4.tar.gz````
+    ````$ wget https://pypi.python.org/packages/52/b6/44871791929d9d7e11325af0b7be711388dfeeab17147988f044a41a6d83/pyalsaaudio-0.8.4.tar.gz```` (Please exactly type as a long command without line-breaking.)
 
     ````$ tar xzf pyalsaaudio-0.8.4.tar.gz````
 
@@ -110,14 +110,16 @@
 12. Finally obtain Beacon Monitor-2 code from GitHub.
 
     ````$ cd && git clone https://github.com/yokoyama-flogics/ibp_monitor_2.git````
+
     ````$ cd ibp_monitor_2````
 
     ````$ screen````
 
     (Press space or return key.)
-   
+
 11. We need permission to access USB device (or SoftRock), so execute
-    the following command.
+    the following command.  (Please exactly type as a long command
+    without line-breaking.)
 	
 	````$ sudo sh -c 'echo ATTRS{idVendor}==\"16c0\", ATTRS{idProduct}==\"05dc\", SUBSYSTEMS==\"usb\", ACTION==\"add\", MODE=\"660\", GROUP=\"users\" > /etc/udev/rules.d/99-softrock.rules'````
 	
@@ -131,7 +133,7 @@
    is, first apply power by DC jack (should be 12V.  Please consult
    with SoftRock documentation), and connect SoftRock by USB cable
    later.
-   
+
 11. Next, you need to choose which version of Beacon Monitor-2 you
     want to run.  At the moment, let's use the branch
     ````dev_start_20171016```` because that is the only release at the
@@ -201,7 +203,7 @@
 
     ````$ python initdb.py agree````
 
-(Answer yes.)
+    (Answer yes.)
 
 14. Finally run Signal Recorder.  It talks to SoftRock and USB sound
     adapter, and receive signal and store that as signal (.wav) files
@@ -214,19 +216,19 @@
 	
 15. Please be patient for a minute.  You will see diagnostics like below.
 
-````
-datetime_sec_to_freq_khz: minute=57
-Changing frequency: 28200 kHz
-datetime_sec_to_freq_khz: minute=57
-Changing frequency: 28200 kHz
-/home/pi/signal/20171123/035730.wav
-160000 (160000, 2)
-register_db: 1511409450
-````
+    ````
+    datetime_sec_to_freq_khz: minute=57
+    Changing frequency: 28200 kHz
+    datetime_sec_to_freq_khz: minute=57
+    Changing frequency: 28200 kHz
+    /home/pi/signal/20171123/035730.wav
+    160000 (160000, 2)
+    register_db: 1511409450
+    ````
 
-   Signal Recorder is working if you see them.  The are repeated for
-   every 10 seconds.
-   
+    Signal Recorder is working if you see them.  The are repeated for
+    every 10 seconds.
+
 16. Next, we need to run various tasks.  In brief,
 
     - Characteristics Extractor (charex.py)
@@ -235,12 +237,12 @@ register_db: 1511409450
     - Graph Image Web Server (graphserv.py)
 	
     You can run them easily by Task Keeper.
-   
+
     However, at the moment, Signal Recorder is running as a foreground
     command.  So the command 'screen' is required.  (It will be
     improved in the near future so that you can run Signal Recorder as
     a background process.)  Anyway, in the meanwhile...
-   
+
     Type a key sequence Ctrl-a and Ctrl-c.  The 'screen' command
     launches another screen and a command shell.  The screen becomes
     blank and you will see a new command prompt.  Don't panic.  You
@@ -249,35 +251,35 @@ register_db: 1511409450
     screens.
 	  
     On the new screen and command prompt, we run Task Keeper.
-   
+
     ````$ python taskkeeper.py -d````
-   
+
     You will see a spinning cursor below the command line.
 
 17. Check if tasks are working.
 
     Now we can see if beacon monitoring result graphs can be obtained.
     You run any your favorite web browser on PC.  Then access the following URL.
-   
+
     - http://192.168.1.75:5000/graph/today.png
-   
+
     or
-   
+
     - http://192.168.1.75:5000/graph/20171123.png
 
     or
-   
+
     - http://192.168.1.75:5000/graph/20171123.gif
 
-    The first example get the today's result by PNG format.  Second
+    The first example gets the today's result by PNG format.  Second
     one is specifying an exact date.  The last one is specifying GIF
     format instead of PNG.
-   
+
     IMPORTANT NOTICE: You should NOT export the beacon monitor web
     server's port publicly.  Flask (the HTTP server component) is not
     recommending to do so.  Please run another robust web server
     (Apache etc.) and put Beacon Monitor web server behind it.
-   
+
 18. Now you can logout Raspberry Pi.  Once again, the command 'screen'
     is great to realize logging-out from Raspberry Pi without
     terminating Beacon Monitor tasks.

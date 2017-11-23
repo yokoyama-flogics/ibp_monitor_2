@@ -139,10 +139,10 @@
 
 11. Next, you need to choose which version of Beacon Monitor-2 you
     want to run.  At the moment, let's use the branch
-    ````dev_start_20171016```` because that is the only release at the
+    ````beta```` because that is the only release at the
     moment.  (Sorry.)  Checkout the source code.
 	
-    ````$ git checkout dev_start_20171016````
+    ````$ git checkout beta````
 
 12. Now, you should configure how Beacon Monitor-2 operates.
     Configurations are described in the file 'bm2.cfg'.  Please open

@@ -40,7 +40,9 @@
    address to the Raspberry Pi.  Use command 'ifconfig' and find a
    line like
 
-> inet 192.168.1.75  netmask 255.255.255.0  broadcast 192.168.1.255
+   ````
+   inet 192.168.1.75  netmask 255.255.255.0  broadcast 192.168.1.255
+   ````
 
    The '192.168.1.75' is assigned IP address of the Raspberry Pi.
    '127.0.0.1' is a local address and not the case.
@@ -72,39 +74,58 @@
     If you see any errors, it is recommended to run 'sudo apt-get
     update' once again, and retry the steps.
 
-    1. sudo apt-get update
-    2. sudo apt-get install -y python-scipy
-    3. sudo apt-get install -y git
-    3. sudo apt-get install -y screen
-    4. sudo apt-get install -y libasound2-dev
-    4. sudo apt-get install -y python-gd
-    4. sudo apt-get install -y python-pip
-    5. sudo pip install libusb1
-    6. sudo pip install flask
-    6. sudo pip install pyyaml
+    ````$ sudo apt-get update````
+	
+    ````$ sudo apt-get install -y python-scipy````
+	
+    ````$ sudo apt-get install -y git````
+
+    ````$ sudo apt-get install -y screen````
+	
+    ````$ sudo apt-get install -y libasound2-dev````
+	
+    ````$ sudo apt-get install -y python-gd````
+	
+    ````$ sudo apt-get install -y python-pip````
+	
+    ````$ sudo pip install libusb1````
+	
+    ````$ sudo pip install flask````
+	
+    ````$ sudo pip install pyyaml````
     
 11. Next, we need the latest pyalsaaudio.  It required a slightly
     complicated procedure.
 	
-    1. mkdir ~/tmp && cd ~/tmp
-    2. wget \
-	
-	   https://pypi.python.org/packages/52/b6/44871791929d9d7e11325af0b7be711388dfeeab17147988f044a41a6d83/pyalsaaudio-0.8.4.tar.gz
-    3. tar xzf pyalsaaudio-0.8.4.tar.gz
-    4. cd pyalsaaudio-0.8.4
-    5. sudo python setup.py install
+    ````$ mkdir ~/tmp && cd ~/tmp````
+
+    ````$ wget https://pypi.python.org/packages/52/b6/44871791929d9d7e11325af0b7be711388dfeeab17147988f044a41a6d83/pyalsaaudio-0.8.4.tar.gz````
+
+    ````$ tar xzf pyalsaaudio-0.8.4.tar.gz````
+
+    ````$ cd pyalsaaudio-0.8.4````
+
+    ````$ sudo python setup.py install````
 
 12. Finally obtain Beacon Monitor-2 code from GitHub.
 
-    4. cd && git clone https://github.com/yokoyama-flogics/ibp_monitor_2.git
-    5. cd ibp_monitor_2
-    6. screen
-    7. (Press space or return key.)
+    ````$ cd && git clone https://github.com/yokoyama-flogics/ibp_monitor_2.git````
+    ````$ cd ibp_monitor_2````
+
+    ````$ screen````
+
+    (Press space or return key.)
    
 11. We need permission to access USB device (or SoftRock), so execute
     the following command.
 	
-	````sudo sh -c 'echo ATTRS{idVendor}==\"16c0\", ATTRS{idProduct}==\"05dc\", SUBSYSTEMS==\"usb\", ACTION==\"add\", MODE=\"660\", GROUP=\"users\" > /etc/udev/rules.d/99-softrock.rules'````
+	````$ sudo sh -c 'echo ATTRS{idVendor}==\"16c0\", ATTRS{idProduct}==\"05dc\", SUBSYSTEMS==\"usb\", ACTION==\"add\", MODE=\"660\", GROUP=\"users\" > /etc/udev/rules.d/99-softrock.rules'````
+	
+	After that, you will see the following result:
+	
+	````$ cat /etc/udev/rules.d/99-softrock.rules````
+
+    ````ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05dc", SUBSYSTEMS=="usb", ACTION=="add", MODE="660", GROUP="users"````
 
 9. Connect SoftRock to Raspberry Pi.  My personal recommended steps
    is, first apply power by DC jack (should be 12V.  Please consult
@@ -116,14 +137,14 @@
     ````dev_start_20171016```` because that is the only release at the
     moment.  (Sorry.)  Checkout the source code.
 	
-    ````git checkout dev_start_20171016````
+    ````$ git checkout dev_start_20171016````
 
 12. Now, you should configure how Beacon Monitor-2 operates.
     Configurations are described in the file 'bm2.cfg'.  Please open
     the file by your favorite text editor.  If you aren't familiar
     with Linux, editor 'nano' is recommended.
 	
-	````nano bm2.cfg````
+	````$ nano bm2.cfg````
 	
 	In the section 'Common', the keyword 'database' specifies where
     the database file is located.  Default should be okay, but you may
@@ -178,14 +199,15 @@
 13. Next, we need to initialize database.  It is required just ONCE.
     If you repeat this, database will be CLEARED!  Please take care.
 
-    1. python initdb.py agree
-	2. (Answer yes.)
+    ````$ python initdb.py agree````
+
+(Answer yes.)
 
 14. Finally run Signal Recorder.  It talks to SoftRock and USB sound
     adapter, and receive signal and store that as signal (.wav) files
     and also to database.
 	
-	1. python sigrec_softrock.py -d
+	````$ python sigrec_softrock.py -d````
 	
 	At the moment, the option '-d' (means debug enabled) is
     recommended.
@@ -228,7 +250,7 @@ register_db: 1511409450
 	  
     On the new screen and command prompt, we run Task Keeper.
    
-    ````python taskkeeper.py -d````
+    ````$ python taskkeeper.py -d````
    
     You will see a spinning cursor below the command line.
 
@@ -245,7 +267,7 @@ register_db: 1511409450
 
     or
    
-   - http://192.168.1.75:5000/graph/20171123.gif
+    - http://192.168.1.75:5000/graph/20171123.gif
 
     The first example get the today's result by PNG format.  Second
     one is specifying an exact date.  The last one is specifying GIF
@@ -271,4 +293,3 @@ register_db: 1511409450
 ## If you have any questions
 
 Please contact me by email.
-

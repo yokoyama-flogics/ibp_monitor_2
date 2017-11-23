@@ -1,14 +1,27 @@
 # Beacon Monitor-2 Project
 
-Thank you for your attention and patience to the Beacon Monitor-2 Project.
-
-**New**: Facebook Page is also available.  https://www.facebook.com/beaconmonitor2/
+This is software to monitor 'NCDXF/IARU International Beacon Project'
+stations by Raspberry Pi and SoftRock SDR receiver.  Please also refer
+http://www.ncdxf.org/beacon/
 
 After the statement on the web site (http://ayoko.net/beacon/) on
-March, 2017, the progress was quite slow until this October.
+March, 2017, the progress was quite slow until this November.
+Sorry for your patience so far.
 
-However, due to getting more spare time :) , the progress is pretty
-accelerating at the moment.
+## Installation
+
+Please refer [installation document](./doc/installation.md).
+
+Currently, this software is provided as a beta version.  It still
+requires clean-up work.
+
+## Web site
+
+- My own monitor station: http://ayoko.net/beacon
+
+- Facebook page: https://www.facebook.com/beaconmonitor2/
+
+## Recent progress background
 
 I had decided to postpone rewriting the current "Signal Recorder",
 which was written by
@@ -25,39 +38,14 @@ adapter, so I'm focusing on it.
 The current code can be found in the branch ```dev_start_20171016```
 (https://github.com/yokoyama-flogics/ibp_monitor_2/tree/dev_start_20171016).
 
-# Current Status
+# Missing functionality
 
-The following shows the current progress.  (As of Nov. 18, 2017)
+Functionality which is not implemented yet though there were in the
+previous Monitor-1 site.
 
-![Current Progress Diagram](./doc/diagram.png)
+- Map Visualizer (gnomonic projection mapping)
 
-- Migration software, which converts the output of Signal Recorder,
-  was written by Nov. 3.
-
-- Database engine (using SQLite3) was done as of Nov. 10.
-
-- Signal Characteristics Extractor was written by Nov. 6.
-
-- Station Frequency Deviation Tracker was written by Nov. 10.
-
-- Bayesian Inference Program was completed by Nov. 13.
-
-- Bar Graph Visualizer was written by Nov. 15.
-
-- Signal Cleaner was done by Nov. 17.
-
-- Task Keeper to run the above parts continuously, by Nov. 17.
-
-- Now coding Signal Recorder for SoftRock + PCM2902 USB CODEC adapter,
-  by ALSA library.
-
-- Remaining code which I need to complete are,
-
-	- Map Visualizer (may be postponed?)
-	- Twitter bot (may be postponed?)
-
-I guess, if I won't face any business problems, the above code will be
-completed by end of this November or December.
+- Twitter bot
 
 Thank you for your additional patience...
 

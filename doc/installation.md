@@ -190,7 +190,7 @@ I prepared two ways to install the software.
 
 ## Configuration and run the monitor
 
-8. Connect a Behringer UCA202 to Raspberry Pi.  If you chose a
+1. Connect a Behringer UCA202 to Raspberry Pi.  If you chose a
    different model, please find a solution by the Internet.  Google
    would help.  TI PCM2902 chip equipped model is strongly recommended
    because it was tested by Beacon Monitor 1 and 2, for long time.

@@ -243,8 +243,8 @@ I prepared two ways to install the software.
     channel (L or R) corresponds to 'I' or 'Q' of quadrature
     demodulation each other.  Some people say SoftRock output is 'L =
     Q and R = I', and I agree with it, so this should be 'R/L'.  In
-    the case, you didn't detect any beacons, I/Q connections may be
-    wrong.  In the case, please try 'L/R' instead.
+    the case you didn't detect any beacons, I/Q connections may be
+    wrong by some reason.  In the case, please try 'L/R' instead.
 	
 	In the section 'TaskKeeper', the keyword 'logfile' specifies where
     Task Keeper outputs log.  The keyboard 'timelimit_sec' means how

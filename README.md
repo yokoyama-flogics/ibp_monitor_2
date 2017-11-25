@@ -21,11 +21,13 @@ requires clean-up work.
 
 - Facebook page: https://www.facebook.com/beaconmonitor2/
 
+- Project background (in Japanese): http://flogics.com/wp/ja/2017/11/beaconmonitor2-available/
+
 ## Some notices
 
 My main receiver for Beacon Monitor is SoftRock and PCM2902 USB CODEC
 adapter, so I'm focusing on it.  I'm also considering RTL-SDR dongle
-and SpyVerter, and also recently announced AirSpy HF+
+and SpyVerter, and also recently announced AirSpy HF+.
 
 # Missing functionality
 

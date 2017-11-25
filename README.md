@@ -29,7 +29,7 @@ My main receiver for Beacon Monitor is SoftRock and PCM2902 USB CODEC
 adapter, so I'm focusing on it.  I'm also considering RTL-SDR dongle
 and SpyVerter, and also recently announced AirSpy HF+.
 
-# Missing functionality
+## Missing functionality
 
 Functionality which are not implemented yet though there were in the
 previous Monitor-1 site is:

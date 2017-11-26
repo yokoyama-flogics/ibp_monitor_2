@@ -15,6 +15,10 @@ Please refer [installation document](./doc/installation.md).
 Currently, this software is provided as a beta version.  It still
 requires clean-up work.
 
+## Troubleshooting
+
+Please refer [common troubleshooting](./doc/troubleshooting.md).
+
 ## Web site
 
 - My own monitor station: http://ayoko.net/beacon

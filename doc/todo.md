@@ -3,6 +3,7 @@
 ## User Experience
 
 - [ ] Signal converter to audible frequency
+- [ ] BPF trouble shooting
 
 ## Database Handling
 

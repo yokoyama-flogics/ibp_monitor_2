@@ -1,5 +1,7 @@
 # Beacon Monitor-2 Project
 
+[![License](https://img.shields.io/badge/License-BSD%202--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
 This is software to monitor 'NCDXF/IARU International Beacon Project'
 stations by Raspberry Pi and SoftRock SDR receiver.  Please also refer
 http://www.ncdxf.org/beacon/

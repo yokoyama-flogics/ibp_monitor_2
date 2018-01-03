@@ -283,7 +283,7 @@ def change_freq(time, bfo_offset_hz, debug):
         print 'Changing frequency: %d kHz' % (freq_base_khz)
 
     freq = freq_base_khz * 1000 - bfo_offset_hz
-    set_freq(freq, debug=True)
+    set_freq(freq, debug=False)
 
 def startrec(check_limit=False, debug=False):
     from datetime import datetime
@@ -293,7 +293,7 @@ def startrec(check_limit=False, debug=False):
     import sys
 
     # Initalize SoftRock
-    initialize(debug=True)
+    initialize(debug=debug)
 
     bfo_offset_hz = config.getint('SignalRecorder', 'bfo_offset_hz')
 

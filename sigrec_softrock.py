@@ -37,43 +37,19 @@ import sys
 
 LEN_INPUT_SEC = 10      # length of sigdata must be 10 seconds signal
 
+config = None
+
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from lib.common import eprint
-
-def exceeded_sigfiles_limit():
-    """
-    Check if too many signal files are generated and return True if so.
-    """
-    from lib.config import BeaconConfigParser
-    import re
-
-    prog = re.compile(r'\.wav$')
-
-    ct = 0
-    for root, dirs, files in \
-            os.walk(BeaconConfigParser().getpath('Signal', 'dir')):
-        for f in files:
-            if prog.search(f):
-                ct += 1
-
-    if ct >= BeaconConfigParser().getint(
-            'SignalRecorder', 'sigfiles_num_limit'):
-        return True
-    else:
-        return False
 
 def register_db(datetime_sec):
     """
     Register record information to database and return True.
     Return false if a duplicate record was found.
     """
-    from lib.config import BeaconConfigParser
     from lib.fileio import connect_database
-
-    # Obtain parameters from configuration
-    config = BeaconConfigParser()
 
     conn = connect_database()
     c = conn.cursor()
@@ -124,7 +100,6 @@ def output_signal(datetime_sec, samples, samplerate):
     counted.  And return True.
     Return false if signal file already existed.
     """
-    from lib.config import BeaconConfigParser
     from lib.fileio import mkdir_if_required, getpath_signalfile
     import os
     import time
@@ -140,8 +115,8 @@ def output_signal(datetime_sec, samples, samplerate):
     n_samples = len(samples) / 4
     np.set_printoptions(edgeitems=1000000)
 
-    lrlag = BeaconConfigParser().getint('SignalRecorder', 'lrlag')
-    sig_iq = BeaconConfigParser().get('SignalRecorder', 'sig_iq')
+    lrlag = config.getint('SignalRecorder', 'lrlag')
+    sig_iq = config.get('SignalRecorder', 'sig_iq')
 
     filename = getpath_signalfile(
         time.strftime('%Y%m%d/%H%M%S.wav', time.gmtime(datetime_sec)))
@@ -312,7 +287,6 @@ def change_freq(time, bfo_offset_hz, debug):
 
 def startrec(check_limit=False, debug=False):
     from datetime import datetime
-    from lib.config import BeaconConfigParser
     from multiprocessing import Queue
     from softrock import initialize
     import alsaaudio
@@ -321,11 +295,10 @@ def startrec(check_limit=False, debug=False):
     # Initalize SoftRock
     initialize(debug=True)
 
-    bfo_offset_hz = BeaconConfigParser().getint(
-        'SignalRecorder', 'bfo_offset_hz')
+    bfo_offset_hz = config.getint('SignalRecorder', 'bfo_offset_hz')
 
-    device = BeaconConfigParser().get('SignalRecorder', 'alsa_dev')
-    samplerate = BeaconConfigParser().getint('Signal', 'samplerate')
+    device = config.get('SignalRecorder', 'alsa_dev')
+    samplerate = config.getint('Signal', 'samplerate')
 
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE, device=device)
     inp.setchannels(2)
@@ -382,8 +355,12 @@ def startrec_with_recover(check_limit=False, debug=False):
     """
     Even startrec() failed, it will be relaunched
     """
+    global config
     from time import sleep
     import logging
+    from lib.config import BeaconConfigParser
+
+    config = BeaconConfigParser()
 
     logging.basicConfig(filename='sigrec.log')
 

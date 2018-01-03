@@ -85,6 +85,9 @@ def set_freq(freq_hz, dryrun=False, debug=False):
     import math
     bytes = [0, 0, 0, 0]
 
+    if debug:
+        print 'freq_hz = %d' % (freq_hz)
+
     if get_version()[0] < 15:
         # This came from the Monitor-1 code.  I don't know why this calculation
         # is required because firmware 14.0 documentation is missing.

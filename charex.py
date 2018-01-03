@@ -31,6 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import os
 import sys
 
+config = None
+
 # Set Python search path to the parent directory
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
@@ -168,7 +170,6 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     """
     Signal-part Estimation and Background Canceling
     """
-    from lib.config import BeaconConfigParser
     from scipy.fftpack import fft
 
     # Determine which samples should be processed
@@ -187,7 +188,7 @@ def sg_est(sig, bg, start, samplerate, offset_ms, canceling=False):
     # It is done in the smoothed signal (background noise cancelled).
     # Now the real signal consists of +/- (sample_rate / 4) [Hz].
     # The true_sig() consists of +/- (detect_freq_width / 2) [Hz].
-    bfo_offset_hz = BeaconConfigParser().getint('Migration', 'bfo_offset_hz')
+    bfo_offset_hz = config.getint('Migration', 'bfo_offset_hz')
     band_start = samplerate / 4 + bfo_offset_hz - wid_freq_detect / 2
     band_end   = samplerate / 4 + bfo_offset_hz + wid_freq_detect / 2
     band = true_sig[band_start : band_end]
@@ -336,8 +337,13 @@ def charex_all(onepass=False, force=False, dryrun=False, debug=False):
     Retrieve any record in the database, which doesn't have calculated
     characteristics by this charex.py yet, and pass them to charex()
     """
+    global config
+
     from lib.fileio import connect_database
     import time
+    from lib.config import BeaconConfigParser
+
+    config = BeaconConfigParser()
 
     conn = connect_database()
     while True:

@@ -356,6 +356,7 @@ def startrec_with_recover(check_limit=False, debug=False):
     Even startrec() failed, it will be relaunched
     """
     global config
+
     from time import sleep
     import logging
     from lib.config import BeaconConfigParser

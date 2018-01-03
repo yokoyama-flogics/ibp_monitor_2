@@ -82,10 +82,10 @@ def task_keeper(debug=False):
     from time import sleep
     import sys
 
-    logging.basicConfig(
-        filename=BeaconConfigParser().getpath('TaskKeeper', 'logfile'))
+    config = BeaconConfigParser()
 
-    task_names = BeaconConfigParser().get('TaskKeeper', 'tasks').split(',')
+    logging.basicConfig(filename=config.getpath('TaskKeeper', 'logfile'))
+    task_names = config.get('TaskKeeper', 'tasks').split(',')
 
     proc = {}
     for task in task_names:

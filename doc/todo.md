@@ -1,9 +1,15 @@
 # To Do List
 
-- [ ] まずは既存のbin/recvを使って、NFSに置かれた音声データを取得して分析するようにしたい。
-   - [ ] ブリッジコードを書いて、あたかもNFS上の音声データを新形式のデータベースから読んでいるように見せたい。
-- [ ] SQLiteに結果を書き込むようにしたい。
-   - [ ] SQLiteのデータベースはUSBメモリに置くようにしたい。
-   - [ ] オプションとして、定期的にリモートのMySQLサーバーに転送するようにしたい。
-- [ ] sigretr.py等にもテストコード（テストベクタ）を付けよう。
-- [ ] I/Q入力の1サンプル遅延（Rが遅れる）は、暫定的にsigretr.pyで対応したい。将来は、各入力デバイス用Signal Recorderで個別対応する。
+## User Experience
+
+- [ ] Signal converter to audible frequency
+- [ ] BPF trouble shooting
+
+## Database Handling
+
+- [ ] Database backup to remote MySQL server etc.
+- [ ] Database backup to some USB memory dongle
+
+## Development and Debugging Purpose
+
+- [ ] More test code and test vectors

@@ -135,6 +135,13 @@ I prepared two ways to install the software.
 
     ````ATTRS{idVendor}=="16c0", ATTRS{idProduct}=="05dc", SUBSYSTEMS=="usb", ACTION=="add", MODE="660", GROUP="users"````
 
+    It is strongly recommended to detach SoftRock from USB connector at this
+    timing and execute command:
+
+    ````$ sudo udevadm control --reload-rules && sudo udevadm trigger````
+
+    And reconnect SoftRock to the USB connector.
+
 11. Next, you need to choose which version of Beacon Monitor-2 you
     want to run.  At the moment, let's use the branch
     ````beta```` because that is the only release at the

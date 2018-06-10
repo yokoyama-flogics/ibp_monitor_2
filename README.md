@@ -21,6 +21,9 @@ requires clean-up work.
 
 Please refer [common troubleshooting](./doc/troubleshooting.md).
 
+Alternatively, you can post your questions to [Issues](https://github.com/yokoyama-flogics/ibp_monitor_2/issues) page.
+I will check it as soon as possible.
+
 ## Web site
 
 - My own monitor station: http://ayoko.net/beacon
